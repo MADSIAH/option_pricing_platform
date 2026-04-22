@@ -16,8 +16,8 @@ Prices European options via Black-Scholes, Monte Carlo, and Binomial Tree; compu
 | `base.py` | `OptionParams`, `PricingResult`, `PricingModel` | Done |
 | `utils.py` | `d1`, `d2` | Done |
 | `black_scholes.py` | `BlackScholes` | Done — reference benchmark |
-| `monte_carlo.py` | `MonteCarlo` | Done — antithetic variates, seeded RNG |
-| `binomial_tree.py` | `BinomialTree` | Done — CRR, American exercise flag |
+| `monte_carlo.py` | `MonteCarlo` | Done — TBD: dividend yields |
+| `binomial_tree.py` | `BinomialTree` | Done — TBD: dividend yields |
 
 All models implement `PricingModel` and accept `OptionParams`, returning `PricingResult`.
 
@@ -50,10 +50,11 @@ Fully rewritten — uses `src/pricing` throughout. Sections:
 
 ## What's next
 
-1. **Greeks** — `src/pricing/greeks.py`: analytical BS Greeks (Delta, Gamma, Vega, Theta, Rho) + finite-difference fallback for MC/BT. Return all five as a dict.
-2. **Volatility surface** — `src/pricing/vol_surface.py`: implied vol via `scipy.optimize.brentq` on the yfinance option chain; surface as a `pandas.DataFrame` indexed by `(expiry, strike)`.
-3. **Skill file** — `.claude/skills/option-risk-analytics.md`: second skill from the design spec.
-4. **Web frontend + API** — later phases, tech stack TBD.
+1.**Pricing** — add dividend yield modeling
+2. **Greeks** — `src/pricing/greeks.py`: analytical BS Greeks (Delta, Gamma, Vega, Theta, Rho) + finite-difference fallback for MC/BT. Return all five as a dict.
+3. **Volatility surface** — `src/pricing/vol_surface.py`: implied vol via `scipy.optimize.brentq` on the yfinance option chain; surface as a `pandas.DataFrame` indexed by `(expiry, strike)`.
+4. **Skill file** — `.claude/skills/option-risk-analytics.md`: second skill from the design spec.
+5. **Web frontend + API** — later phases, tech stack TBD.
 
 ## Conventions
 
