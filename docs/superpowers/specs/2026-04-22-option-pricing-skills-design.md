@@ -8,7 +8,7 @@
 
 ## Context
 
-The project is at Phase 1: `notebooks/pricing.ipynb` implements Black-Scholes pricing on live AAPL data (yfinance + FRED). The remaining roadmap items (Monte Carlo, Binomial Tree, Greeks, volatility surface) need consistent implementation conventions enforced through Claude Code skills.
+Phase 1 is complete. `src/pricing/` implements all three pricing models (Black-Scholes, Monte Carlo, Binomial Tree) with 14 passing tests. `notebooks/pricing.ipynb` has been rewritten to use the package and demonstrates each method with plots and a final comparison. Remaining roadmap items (Greeks, volatility surface) need consistent implementation conventions enforced through Claude Code skills.
 
 Skills purpose: **implementation guide only** — correct formulas, numerical conventions, parameter naming, library usage, and validation rules. No theory explanation layer.
 
@@ -41,10 +41,9 @@ option_pricing_platform/
    - No deviation from these names across all implementations
 3. **Library rules**
    - Use `numpy` for all vectorized path computations
-   - Use `scipy.stats.norm` for CDF/PDF (replaces the manual `math.erf` in the current notebook)
-   - Pure `math` is acceptable only for scalar Black-Scholes
+   - Use `scipy.stats.norm` for CDF/PDF throughout — never use `math.erf` manually
 4. **Black-Scholes**
-   - Reference implementation already exists in `notebooks/pricing.ipynb`
+   - Reference implementation lives in `src/pricing/black_scholes.py`
    - Must not be modified without updating the validation baseline
    - Serves as the benchmark for all numerical methods
 5. **Monte Carlo**

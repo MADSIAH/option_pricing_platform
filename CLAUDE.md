@@ -32,6 +32,18 @@ Run with: `python -m pytest tests/ -v`
 
 - `option-pricing-methods.md` — invoke when implementing or extending any pricing model
 
+### Notebook (`notebooks/pricing.ipynb`)
+
+Fully rewritten — uses `src/pricing` throughout. Sections:
+
+1. **Fetch Real Data** — live AAPL price, annualized volatility, risk-free rate (FRED TB3MS), option chain via yfinance
+2. **Set Parameters** — S₀, K (2% OTM), T=0.5y, σ
+3. **Pricing Engine Setup** — imports from `src/pricing`, creates `call_params` and `put_params`
+4. **Black-Scholes** — prices call and put; plots price vs spot over ±30% range
+5. **Monte Carlo** — prices call and put (50k paths); plots 40 simulated GBM paths; plots convergence vs path count
+6. **Binomial Tree** — prices European call/put and American put (500 steps); plots CRR lattice (7 steps, illustrative); plots convergence vs step count; shows early exercise premium
+7. **Method Comparison** — side-by-side table and grouped bar chart (call + put, all three methods)
+
 ### Design spec
 
 `docs/superpowers/specs/2026-04-22-option-pricing-skills-design.md` — full design decisions and conventions.
