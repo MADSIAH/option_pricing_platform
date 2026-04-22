@@ -1,257 +1,193 @@
-# AI-Enhanced Options Pricing Platform
+# Option Pricing Platform
 
-> Programming in Finance II - Big Projects 2026
-> Project 2.7 - Universita della Svizzera italiana (USI)
+> **Programming in Finance II — Big Projects 2026**
+> Project 2.7 · Università della Svizzera Italiana (USI)
 
-An AI-enhanced platform for advanced options pricing, volatility surface modeling, Greeks analysis, and interactive financial visualization.
+![Status](https://img.shields.io/badge/status-work%20in%20progress-yellow)
+![Stack](https://img.shields.io/badge/stack-TBD-lightgrey)
+![License](https://img.shields.io/badge/license-TBD-lightgrey)
 
-## Project Status
+An educational, AI-enhanced platform for options pricing, Greeks analysis, volatility surface modeling, and interactive financial visualization — built for learners and practitioners alike.
 
-This repository currently documents the project scope, requirements, and planned architecture for the platform. The implementation roadmap starts with European options priced with Black-Scholes for benchmarking, then expands to advanced numerical pricing, volatility modeling, real-time data ingestion, and AI-assisted explanations.
+---
 
-## Project Idea
+## Table of Contents
 
-We are developing an options pricing platform that combines quantitative finance, software engineering, visualization, and AI. The goal is to create an interactive and accessible tool that computes theoretical option prices, calculates the full set of Greeks, models the volatility surface, and explains the results in a way that matches the user's background.
+- [Option Pricing Platform](#option-pricing-platform)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Target Users](#target-users)
+  - [Core Features](#core-features)
+    - [Option Pricing Engine](#option-pricing-engine)
+    - [Greeks](#greeks)
+    - [Volatility Surface](#volatility-surface)
+    - [Web Frontend \& Dashboards](#web-frontend--dashboards)
+    - [Real-Time Data Ingestion](#real-time-data-ingestion)
+    - [API Layer](#api-layer)
+  - [Nice to Have](#nice-to-have)
+  - [Pricing Methods](#pricing-methods)
+  - [Tech Stack](#tech-stack)
+  - [Repository Structure](#repository-structure)
+  - [Roadmap](#roadmap)
+    - [Phase 1 — Core Engine](#phase-1--core-engine)
+    - [Phase 2 — Numerical Methods \& Data](#phase-2--numerical-methods--data)
+    - [Phase 3 — Frontend \& AI](#phase-3--frontend--ai)
+    - [Phase 4 — API, Polish \& Extensions](#phase-4--api-polish--extensions)
+  - [AI Contribution](#ai-contribution)
 
-The platform is designed to support:
+---
 
-- students learning derivatives pricing
-- finance practitioners validating option values and sensitivities
-- users who want intuitive dashboards and AI-guided explanations
+## Overview
 
-## Problem Definition
+The objective of this project is building an options pricing platform. The platform prices European options via Black-Scholes, Monte Carlo, and Binomial Tree methods; computes the full Greeks profile; constructs the implied volatility surface from live market data; and surfaces all of this through a web dashboard with an optional LLM explanation layer.
 
-Option pricing depends on several variables: spot price, strike, maturity, volatility, and interest rates. Understanding how these drivers interact is not always straightforward, especially when moving beyond closed-form models. This project addresses that problem by building a platform that:
+Currently at Phase 1: `notebooks/pricing.ipynb` implements Black-Scholes pricing on live AAPL data fetched from `yfinance` and FRED.
 
-- computes option prices with advanced numerical methods
-- calculates all main Greeks
-- visualizes volatility across strikes and maturities
-- integrates live market and macroeconomic data
-- explains pricing results in natural language
+---
 
-## Minimum Requirements
+## Target Users
 
-The platform must:
+The platform is primarily **didactic**. It is designed for:
 
-- build a platform for advanced options pricing
-- implement volatility surface modeling
-- calculate all main Greeks: Delta, Gamma, Vega, Theta, and Rho
-- price options with at least one advanced method such as Monte Carlo simulations, binomial trees, or FFT-based pricing
+| User | Goal |
+|------|------|
+| **Finance students** | Build intuition for derivatives pricing and risk sensitivities |
+| **Course practitioners** | Validate theoretical models against live market data |
+| **Self-learners** | Explore options mechanics through an interactive, guided interface |
 
-## Nice to Have
+---
 
-Stretch goals for the platform include:
+## Core Features
 
-- use an LLM to explain pricing results and risk exposures
-- implement a web dashboard with strong user experience
-- visualize the volatility surface interactively
-- support mobile-friendly usage
-- extend the platform toward American options and crypto options
+### Option Pricing Engine
 
-## Main Objectives
+- Black-Scholes analytical pricing for European calls and puts (baseline benchmark)
+- Monte Carlo simulation for path-dependent and European payoffs
+- Binomial Tree pricing for European and American options
+- Side-by-side comparison of results across methods
 
-This project aims to:
+### Greeks
 
-- compute option prices with advanced numerical methods
-- benchmark European options with the Black-Scholes model
-- calculate the main Greeks for every pricing result
-- model and visualize the volatility surface
-- integrate real-time market data for pricing inputs
-- build a web frontend with a strong focus on UX
-- create interactive dashboards with AI insights
-- expose functionality through a custom API with rate limiting
-- add an LLM-based explanation module for finance concepts and model outputs
+All five main sensitivities computed for every pricing result:
 
-## Financial Scope
+| Greek | Sensitivity to |
+|-------|---------------|
+| Delta | Spot price |
+| Gamma | Delta (second-order spot) |
+| Vega  | Implied volatility |
+| Theta | Time to expiry |
+| Rho   | Risk-free interest rate |
 
-The implementation roadmap starts with:
+### Volatility Surface
 
-- European call and put options
-- Black-Scholes pricing as the baseline analytical model
-- optimization and parameter analysis around European options
+- Implied volatility extracted from live option chains
+- Surface constructed across strike and maturity dimensions
+- Interactive 3D visualization via the web frontend
 
-The project will then expand toward:
+### Web Frontend & Dashboards
 
-- Monte Carlo pricing
-- Binomial Tree pricing
-- American options
-- possible crypto option support
+- Clean, responsive UI with dedicated pricing and Greeks workflows
+- Interactive charts for sensitivity analysis and surface exploration
+- Desktop-first; mobile-friendly target
 
-## Chosen Pricing Methods
+### Real-Time Data Ingestion
 
-The main advanced methods planned for the pricing engine are:
-
-- Monte Carlo simulation
-- Binomial Tree methods
-
-These methods were chosen because they are advanced enough to satisfy the project requirements while remaining interpretable and suitable for educational use. Black-Scholes will be used as the baseline reference for European options.
-
-## Planned Features
-
-### Option Pricing Module
-
-- Price options using Black-Scholes for European contracts
-- Add advanced pricing with Monte Carlo and Binomial Tree methods
-- Compare advanced-method results against theoretical Black-Scholes benchmarks where applicable
-
-### Greeks Module
-
-- Compute Delta
-- Compute Gamma
-- Compute Vega
-- Compute Theta
-- Compute Rho
-
-### Volatility Surface Module
-
-- Build the implied volatility surface from market option chains
-- Visualize the surface across strike and maturity dimensions
-- Support interactive exploration through the frontend
-
-### Real-Time Data Module
-
-- Fetch equity and option data with `yfinance`
-- Fetch risk-free rate data with the FRED API
-- Schedule automatic updates with `APScheduler`
-- Refresh data every 10 to 60 minutes depending on configuration
-
-### Web Frontend
-
-- Provide a clean and user-friendly web interface
-- Support desktop and mobile-friendly usage
-- Focus on clear workflows for pricing, Greeks, and volatility analysis
-- Add advanced charts and interactive dashboards
-
-### AI and LLM Support
-
-- Explain pricing outputs in natural language
-- Adapt explanations to the user's knowledge level
-- Support profiles such as `noob`, `finance student`, and `professional trader`
-- Help users understand parameters, model assumptions, and risk sensitivities
+- Equity and option data via `yfinance`
+- Risk-free rates via the FRED API
+- Scheduled refresh every 10–60 minutes via `APScheduler`
 
 ### API Layer
 
-- Expose pricing and volatility functionality through our own API
-- Add rate limiting as the first planned protection mechanism
-- Keep the architecture ready for future authentication if needed
+- Internal API exposing pricing and volatility endpoints
+- Rate limiting as baseline protection
+- Architecture kept open for future authentication
 
-## User Experience Vision
+---
 
-The platform should not only be technically correct but also easy to use. The UX goals are:
+## Nice to Have
 
-- simple pricing workflows
-- responsive dashboards
-- clear risk visualization
-- accessible explanations for different experience levels
-- smooth use on both web and mobile screens
+These are stretch goals — planned but not guaranteed for the final release:
 
-## AI-Assisted Explanations
+- **AI-powered explanations** — an LLM agent that interprets pricing outputs and Greeks in natural language, adapting depth to the user's stated level (`beginner`, `finance student`, `professional trader`)
+- **Trading strategy assistant** — a conversational agent that maps pricing analysis to common option strategies (covered calls, straddles, spreads) based on user-defined objectives and risk tolerance
+- **Advanced interactive visualization** — richer surface plots, payoff diagram builder, scenario analysis tools
+- **American and crypto option extensions** — widen the financial scope beyond vanilla European contracts
+- **Mobile-optimized experience** — full responsiveness beyond basic layout adaptation
 
-One key differentiator of the project is the explanation layer. When a user asks for clarification, the assistant can first identify the user's background and then explain the option parameters and pricing results accordingly.
+---
 
-Examples:
+## Pricing Methods
 
-- `noob`: simple language and intuition-first explanations
-- `finance student`: more mathematical detail and terminology
-- `professional trader`: concise, market-oriented interpretation
+| Method | Type | Scope |
+|--------|------|-------|
+| Black-Scholes | Analytical (closed-form) | European options — reference baseline |
+| Monte Carlo | Stochastic simulation | European; extensible to path-dependent payoffs |
+| Binomial Tree | Lattice (discrete-time) | European and American options |
 
-As a further extension, we may explore a trading assistant that adapts to user needs, budget, and risk tolerance.
+Black-Scholes serves as the benchmark: all numerical method outputs are validated against it wherever a closed-form solution exists.
 
-## Technical Structure
+---
 
-The project is planned as a modular platform with separate components for:
+## Tech Stack
 
-- pricing engine
-- Greeks computation
-- volatility surface construction and visualization
-- real-time data ingestion
-- API services
-- frontend application
-- LLM explanation module
+> **Status: TBD** — final technology choices will be documented here as decisions are confirmed.
 
-This modular structure will make the platform easier to build, test, and extend.
+| Layer | Technology | Status |
+|-------|-----------|--------|
+| Pricing engine | Python (NumPy, SciPy) | Planned |
+| Web framework | _TBD_ | — |
+| Frontend | _TBD_ | — |
+| API | _TBD_ | — |
+| Data ingestion | `yfinance`, FRED API | Planned |
+| Scheduling | `APScheduler` | Planned |
+| LLM integration | _TBD_ | Nice to have |
+| Database | _TBD_ | — |
+| Deployment | _TBD_ | — |
 
-## Proposed Repository Structure
+---
 
-```text
+## Repository Structure
+
+```
 option_pricing_platform/
-|-- README.md
-|-- AGENTS.md
-|-- requirements.txt
-|-- .env.example
-|
-|-- core/
-|   |-- black_scholes.py
-|   |-- monte_carlo.py
-|   |-- binomial_tree.py
-|   |-- greeks.py
-|   `-- volatility_surface.py
-|
-|-- data/
-|   |-- market_data.py
-|   |-- fred_rates.py
-|   `-- scheduler.py
-|
-|-- api/
-|   |-- main.py
-|   |-- routes/
-|   `-- rate_limits.py
-|
-|-- frontend/
-|   |-- app.py
-|   `-- components/
-|
-|-- llm/
-|   |-- explainer.py
-|   `-- prompts/
-|
-`-- tests/
-    |-- test_pricing.py
-    |-- test_greeks.py
-    `-- test_api.py
+├── README.md
+└── notebooks/
+    └── pricing.ipynb
 ```
 
-## Project Roadmap
+---
 
-### Phase 1
+## Roadmap
 
-- Set up repository structure
-- Implement European options with Black-Scholes
-- Compute all Greeks
-- Build baseline tests
+### Phase 1 — Core Engine
+- [ ] Repository setup and project scaffolding
+- [ ] Black-Scholes pricing for European calls and puts
+- [ ] Greeks computation (all five)
+- [ ] Baseline test suite
 
-### Phase 2
+### Phase 2 — Numerical Methods & Data
+- [ ] Monte Carlo pricing
+- [ ] Binomial Tree pricing
+- [ ] Volatility surface construction
+- [ ] Market data ingestion (`yfinance`, FRED)
 
-- Add Monte Carlo and Binomial Tree pricing
-- Build volatility surface workflows
-- Add data ingestion with `yfinance` and FRED
+### Phase 3 — Frontend & AI
+- [ ] Web dashboard with pricing workflows
+- [ ] Interactive charts and volatility surface visualization
+- [ ] LLM explanation module *(nice to have)*
 
-### Phase 3
+### Phase 4 — API, Polish & Extensions
+- [ ] Public-facing API with rate limiting
+- [ ] Mobile UX refinement
+- [ ] American options and/or crypto extensions *(nice to have)*
+- [ ] Trading strategy assistant *(nice to have)*
 
-- Create the web dashboard
-- Add interactive charts and dashboards
-- Integrate the LLM explanation module
+---
 
-### Phase 4
+## AI Contribution
 
-- Expose a public-facing API with rate limiting
-- Improve mobile UX
-- Explore American options and crypto extensions
+The project will be developed on GitHub with regular commits and documentation updates. At least one AI-supported pull request is planned per course requirements. An `AGENTS.md` file describes how AI tools contribute to the development workflow.
 
-## Expected Result
+---
 
-At the end of the project, we expect to have a working platform that:
-
-- prices options using live or frequently refreshed market data
-- computes Greeks for all supported models
-- visualizes the volatility surface
-- provides AI-supported explanations
-- offers an interactive web application with strong usability
-
-## GitHub and AI Contribution
-
-The project will be developed on GitHub with regular commits, documentation updates, and at least one AI-supported pull request. The repository will include an `AGENTS.md` file describing how AI tools contribute to the workflow, in line with the course requirements.
-
-## Conclusion
-
-This project combines finance, programming, data engineering, AI, and visualization in one platform. The aim is to deliver a technically solid and well-documented solution that is both rigorous and easy to use.
+*Work in progress — last updated April 2026.*
