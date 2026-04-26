@@ -41,7 +41,7 @@ An educational, AI-enhanced platform for options pricing, Greeks analysis, volat
 
 The objective of this project is building an options pricing platform. The platform prices options via Black-Scholes, Monte Carlo, and Binomial Tree methods; computes the full Greeks profile; constructs the implied volatility surface from live market data; and surfaces all of this through a web dashboard with an optional LLM explanation layer.
 
-**Phase 1 complete.** The pricing engine (`src/pricing/`) for european options is fully implemented and tested (14 passing tests). `notebooks/pricing.ipynb` demonstrates all three methods on live AAPL data with convergence plots and a side-by-side comparison. Greeks and volatility surface construction are next.
+**Phases 1 & 2 complete.** The pricing engine, Greeks, and implied volatility surface are fully implemented and tested (47 passing tests). `notebooks/pricing.ipynb` demonstrates all three pricing methods on live AAPL data with convergence plots, a full Greeks table and delta-vs-spot chart, and a 3D implied volatility surface. Continuous dividend yield (`q`) is supported across all models via the Merton extension.
 
 ---
 
@@ -80,9 +80,11 @@ All five main sensitivities computed for every pricing result:
 
 ### Volatility Surface
 
-- Implied volatility extracted from live option chains
-- Surface constructed across strike and maturity dimensions
-- Interactive 3D visualization via the web frontend
+- Implied volatility extracted from live option chains via Brent's root-finding on the BS price
+- Surface constructed across strike and maturity dimensions, interpolated to a continuous grid
+- 3D visualization in the notebook; interactive dashboard planned for the web frontend
+
+> **TODO:** The current pipeline applies basic liquidity filters (bid > 0, volume > 0, open interest > 0) and clips IV to [1%, 200%], but the raw yfinance option chain still contains near-expiry contracts and deep OTM strikes where bid-ask spreads are extreme. These produce spikes and distortions in the surface. Proper chain cleaning is needed before IV calculation: minimum bid-ask spread threshold, minimum time-to-expiry cutoff (e.g. T > 7 days), moneyness range filter, and possibly a smoothing/arbitrage-free pass after extraction.
 
 ### Web Frontend & Dashboards
 
@@ -111,7 +113,7 @@ These are stretch goals — planned but not guaranteed for the final release:
 - **AI-powered explanations** — an LLM agent that interprets pricing outputs and Greeks in natural language, adapting depth to the user's stated level (`beginner`, `finance student`, `professional trader`)
 - **Trading strategy assistant** — a conversational agent that maps pricing analysis to common option strategies (covered calls, straddles, spreads) based on user-defined objectives and risk tolerance
 - **Advanced interactive visualization** — richer surface plots, payoff diagram builder, scenario analysis tools
-- **Dividend yield support** *(TBD)* — extend all three pricing models to accept a continuous dividend yield `q` (Merton extension for Black-Scholes: replace `S` with `S·exp(-q·T)`; adjust drift in Monte Carlo and risk-neutral probability in Binomial Tree)
+- **Dividend yield support** ✓ — all three pricing models, Greeks, and implied vol accept a continuous dividend yield `q` (Merton extension)
 - **American options — full framework** *(TBD)* — Binomial Tree already prices American puts via early-exercise flag; planned extension covers BS approximations (e.g. Barone-Adesi-Whaley) and American calls on dividend-paying stocks
 - **Crypto option extensions** — widen scope beyond vanilla equity contracts
 - **Mobile-optimized experience** — full responsiveness beyond basic layout adaptation
@@ -158,21 +160,26 @@ option_pricing_platform/
 ├── src/
 │   └── pricing/
 │       ├── base.py                  ← OptionParams, PricingResult, PricingModel ABC
-│       ├── utils.py                 ← shared d1/d2
+│       ├── utils.py                 ← shared d1/d2 (with dividend yield q)
 │       ├── black_scholes.py         ← BlackScholes (reference benchmark)
 │       ├── monte_carlo.py           ← MonteCarlo (antithetic variates)
-│       └── binomial_tree.py         ← BinomialTree (CRR, American exercise)
+│       ├── binomial_tree.py         ← BinomialTree (CRR, American exercise)
+│       ├── greeks.py                ← AnalyticalGreeks (BS), NumericalGreeks (central diff)
+│       └── vol_surface.py           ← implied_vol (brentq), build_vol_surface
 ├── tests/
 │   ├── test_monte_carlo.py
-│   └── test_binomial_tree.py
+│   ├── test_binomial_tree.py
+│   ├── test_greeks.py
+│   └── test_vol_surface.py
 ├── notebooks/
-│   └── pricing.ipynb                ← AAPL demo, all three methods
+│   └── pricing.ipynb                ← AAPL demo: pricing, Greeks, vol surface
 ├── .claude/
 │   └── skills/
 │       └── option-pricing-methods.md
 └── docs/
     └── superpowers/specs/
-        └── 2026-04-22-option-pricing-skills-design.md
+        ├── 2026-04-22-option-pricing-skills-design.md
+        └── 2026-04-26-dividend-yield-design.md
 ```
 
 ---
@@ -186,13 +193,13 @@ option_pricing_platform/
 - [x] Binomial Tree pricing — European + American (`src/pricing/binomial_tree.py`)
 - [x] Notebook demo with plots and method comparison (`notebooks/pricing.ipynb`)
 - [x] Baseline test suite (14 passing tests)
-- [ ] Greeks computation (all five) — **next**
 
 ### Phase 2 — Numerical Methods & Data
-- [ ] Market data ingestion (`yfinance`, FRED)
-- [ ] Greeks: analytical BS + finite-difference fallback for MC/BT
-- [ ] Volatility surface construction (implied vol via Brent's method)
-- [ ] Dividend yield support across all three models *(TBD)*
+- [x] Market data ingestion (`yfinance`, FRED)
+- [x] Greeks: analytical BS (Merton) + central-difference fallback for MC/BT
+- [x] Continuous dividend yield `q` across all models and Greeks
+- [x] Volatility surface construction (implied vol via Brent's method, 47 passing tests)
+- [ ] **TODO: Option chain cleaning before IV calculation** — current filters (bid > 0, volume > 0, IV bounds) are insufficient; near-expiry contracts, deep OTM strikes, and wide bid-ask spreads produce surface spikes. Needs: minimum T cutoff, spread threshold, moneyness range, and optionally an arbitrage-free smoothing pass.
 - [ ] American options — full framework beyond BT flag *(TBD)*
 
 ### Phase 3 — Frontend & AI
