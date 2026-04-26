@@ -87,3 +87,13 @@ class TestBuildVolSurface:
         chain = self._make_chain()
         surface = build_vol_surface(chain, S=100, r=0.05)
         assert surface["implied_vol"].isna().sum() == 0
+
+
+class TestDividend:
+    def test_roundtrip_with_dividend(self):
+        sigma_input = 0.25
+        p = OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=sigma_input, option_type="call", q=0.02)
+        from src.pricing.black_scholes import BlackScholes
+        price = BlackScholes().price(p).price
+        iv = implied_vol(price, S=100, K=100, T=0.5, r=0.05, option_type="call", q=0.02)
+        assert abs(iv - sigma_input) < 1e-5

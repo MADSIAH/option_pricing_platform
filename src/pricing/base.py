@@ -10,6 +10,7 @@ class OptionParams:
     r: float       # risk-free rate (annualized decimal)
     sigma: float   # volatility (annualized decimal)
     option_type: str  # "call" or "put"
+    q: float = 0.0   # continuous dividend yield (annualized decimal, e.g. 0.02)
 
     def __post_init__(self):
         if self.option_type not in ("call", "put"):
@@ -20,6 +21,8 @@ class OptionParams:
             raise ValueError("sigma must be positive.")
         if self.S <= 0 or self.K <= 0:
             raise ValueError("S and K must be positive.")
+        if self.q < 0:
+            raise ValueError("q must be non-negative.")
 
 
 @dataclass

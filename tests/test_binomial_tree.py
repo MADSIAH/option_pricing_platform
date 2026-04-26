@@ -50,3 +50,9 @@ def test_american_call_equals_european_call_on_non_dividend_stock():
 def test_rejects_invalid_option_type():
     with pytest.raises(ValueError):
         OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=0.2, option_type="invalid")
+
+
+def test_call_price_lower_with_dividend():
+    no_div = OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=0.2, option_type="call", q=0.0)
+    with_div = OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=0.2, option_type="call", q=0.03)
+    assert BinomialTree().price(with_div).price < BinomialTree().price(no_div).price

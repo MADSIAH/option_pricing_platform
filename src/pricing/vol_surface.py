@@ -15,13 +15,14 @@ def implied_vol(
     T: float,
     r: float,
     option_type: str,
+    q: float = 0.0,
 ) -> float:
     """Implied volatility via Brent's root-finding on the Black-Scholes price.
 
     Search bracket: [1e-6, 10.0]. Raises ValueError if Brent's method fails.
     """
     def objective(sigma: float) -> float:
-        params = OptionParams(S=S, K=K, T=T, r=r, sigma=sigma, option_type=option_type)
+        params = OptionParams(S=S, K=K, T=T, r=r, sigma=sigma, option_type=option_type, q=q)
         return _bs.price(params).price - market_price
 
     try:
@@ -39,6 +40,7 @@ def build_vol_surface(
     S: float,
     r: float,
     option_type: str = "call",
+    q: float = 0.0,
 ) -> pd.DataFrame:
     """Build an implied volatility surface from a yfinance-style option chain.
 
@@ -62,7 +64,7 @@ def build_vol_surface(
     records = []
     for _, row in option_chain.iterrows():
         try:
-            iv = implied_vol(row["mid_price"], S, row["strike"], row["T"], r, option_type)
+            iv = implied_vol(row["mid_price"], S, row["strike"], row["T"], r, option_type, q)
         except ValueError:
             iv = np.nan
         records.append({"expiry": row["expiry"], "strike": row["strike"], "implied_vol": iv})

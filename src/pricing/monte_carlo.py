@@ -16,7 +16,7 @@ class MonteCarlo(PricingModel):
         z = rng.standard_normal(half)
         z = np.concatenate([z, -z])  # antithetic variates
 
-        terminal = p.S * np.exp((p.r - 0.5 * p.sigma**2) * p.T + p.sigma * np.sqrt(p.T) * z)
+        terminal = p.S * np.exp((p.r - p.q - 0.5 * p.sigma**2) * p.T + p.sigma * np.sqrt(p.T) * z)
 
         if p.option_type == "call":
             payoffs = np.maximum(terminal - p.K, 0)

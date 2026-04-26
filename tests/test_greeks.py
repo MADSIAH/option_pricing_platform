@@ -58,6 +58,11 @@ class TestAnalyticalGreeks:
         params = OptionParams(S=50, K=100, T=0.5, r=0.05, sigma=0.2, option_type="call")
         assert ag.compute(params).delta < 0.1
 
+    def test_delta_call_reduced_by_dividend(self):
+        no_div = OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=0.2, option_type="call", q=0.0)
+        with_div = OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=0.2, option_type="call", q=0.03)
+        assert ag.compute(with_div).delta < ag.compute(no_div).delta
+
 
 class TestNumericalGreeks:
     """Numerical Greeks via BinomialTree should match analytical within 2%."""

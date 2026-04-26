@@ -15,7 +15,7 @@ class BinomialTree(PricingModel):
 
         u = np.exp(p.sigma * np.sqrt(dt))
         d = 1.0 / u
-        q = (np.exp(p.r * dt) - d) / (u - d)  # risk-neutral probability
+        q_prob = (np.exp((p.r - p.q) * dt) - d) / (u - d)  # risk-neutral probability
         discount = np.exp(-p.r * dt)
 
         # terminal stock prices
@@ -29,7 +29,7 @@ class BinomialTree(PricingModel):
 
         # backward induction
         for i in range(n - 1, -1, -1):
-            values = discount * (q * values[:-1] + (1 - q) * values[1:])
+            values = discount * (q_prob * values[:-1] + (1 - q_prob) * values[1:])
             if self._american:
                 stock = p.S * (u ** (i - np.arange(i + 1))) * (d ** np.arange(i + 1))
                 if p.option_type == "call":

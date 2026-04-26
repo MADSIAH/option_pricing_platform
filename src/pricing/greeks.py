@@ -22,24 +22,27 @@ class AnalyticalGreeks:
 
     def compute(self, params: OptionParams) -> Greeks:
         p = params
-        _d1 = d1(p.S, p.K, p.T, p.r, p.sigma)
-        _d2 = d2(p.S, p.K, p.T, p.r, p.sigma)
+        _d1 = d1(p.S, p.K, p.T, p.r, p.sigma, p.q)
+        _d2 = d2(p.S, p.K, p.T, p.r, p.sigma, p.q)
         pdf_d1 = norm.pdf(_d1)
         sqrt_T = np.sqrt(p.T)
         discount = np.exp(-p.r * p.T)
+        discount_q = np.exp(-p.q * p.T)
 
-        # Gamma and Vega are identical for calls and puts
-        gamma = pdf_d1 / (p.S * p.sigma * sqrt_T)
-        vega = p.S * pdf_d1 * sqrt_T / 100  # per 1% change in sigma
+        gamma = discount_q * pdf_d1 / (p.S * p.sigma * sqrt_T)
+        vega = p.S * discount_q * pdf_d1 * sqrt_T / 100
 
         if p.option_type == "call":
-            delta = norm.cdf(_d1)
-            # Theta: ∂c/∂t = -S·N'(d1)·σ/(2√T) - r·K·e^(-rT)·N(d2), per calendar day
-            theta = (-(p.S * pdf_d1 * p.sigma) / (2 * sqrt_T) - p.r * p.K * discount * norm.cdf(_d2)) / 365
+            delta = discount_q * norm.cdf(_d1)
+            theta = (-(p.S * p.sigma * discount_q * pdf_d1) / (2 * sqrt_T)
+                     - p.r * p.K * discount * norm.cdf(_d2)
+                     + p.q * p.S * discount_q * norm.cdf(_d1)) / 365
             rho = p.K * p.T * discount * norm.cdf(_d2) / 100
         else:
-            delta = norm.cdf(_d1) - 1
-            theta = (-(p.S * pdf_d1 * p.sigma) / (2 * sqrt_T) + p.r * p.K * discount * norm.cdf(-_d2)) / 365
+            delta = discount_q * (norm.cdf(_d1) - 1)
+            theta = (-(p.S * p.sigma * discount_q * pdf_d1) / (2 * sqrt_T)
+                     + p.r * p.K * discount * norm.cdf(-_d2)
+                     - p.q * p.S * discount_q * norm.cdf(-_d1)) / 365
             rho = -p.K * p.T * discount * norm.cdf(-_d2) / 100
 
         return Greeks(delta=delta, gamma=gamma, vega=vega, theta=theta, rho=rho, method="analytical")

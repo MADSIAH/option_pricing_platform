@@ -52,3 +52,9 @@ def test_different_seeds_give_different_prices():
 def test_rejects_invalid_option_type():
     with pytest.raises(ValueError):
         OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=0.2, option_type="invalid")
+
+
+def test_call_price_lower_with_dividend():
+    no_div = OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=0.2, option_type="call", q=0.0)
+    with_div = OptionParams(S=100, K=100, T=0.5, r=0.05, sigma=0.2, option_type="call", q=0.03)
+    assert MonteCarlo().price(with_div).price < MonteCarlo().price(no_div).price
