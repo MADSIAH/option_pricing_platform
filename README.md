@@ -84,7 +84,7 @@ All five main sensitivities computed for every pricing result:
 - Surface constructed across strike and maturity dimensions, interpolated to a continuous grid
 - 3D visualization in the notebook; interactive dashboard planned for the web frontend
 
-> **TODO:** The current pipeline applies basic liquidity filters (bid > 0, volume > 0, open interest > 0) and clips IV to [1%, 200%], but the raw yfinance option chain still contains near-expiry contracts and deep OTM strikes where bid-ask spreads are extreme. These produce spikes and distortions in the surface. Proper chain cleaning is needed before IV calculation: minimum bid-ask spread threshold, minimum time-to-expiry cutoff (e.g. T > 7 days), moneyness range filter, and possibly a smoothing/arbitrage-free pass after extraction.
+> **Update:** Option-chain cleaning is now part of the volatility pipeline (`src/pricing/vol_surface.py`) with default filters for minimum time-to-expiry, bid-ask relative spread, moneyness range, and liquidity (volume/open interest when available). A smoothing/arbitrage-free post-processing pass is still planned as a future improvement.
 
 ### Web Frontend & Dashboards
 
@@ -199,7 +199,7 @@ option_pricing_platform/
 - [x] Greeks: analytical BS (Merton) + central-difference fallback for MC/BT
 - [x] Continuous dividend yield `q` across all models and Greeks
 - [x] Volatility surface construction (implied vol via Brent's method, 47 passing tests)
-- [ ] **TODO: Option chain cleaning before IV calculation** — current filters (bid > 0, volume > 0, IV bounds) are insufficient; near-expiry contracts, deep OTM strikes, and wide bid-ask spreads produce surface spikes. Needs: minimum T cutoff, spread threshold, moneyness range, and optionally an arbitrage-free smoothing pass.
+- [x] Option chain cleaning before IV calculation — minimum T cutoff, spread threshold, moneyness range, and liquidity filters integrated in `src/pricing/vol_surface.py`
 - [ ] American options — full framework beyond BT flag *(TBD)*
 
 ### Phase 3 — Frontend & AI

@@ -4,7 +4,7 @@ import pytest
 
 from src.pricing.base import OptionParams
 from src.pricing.black_scholes import BlackScholes
-from src.pricing.vol_surface import implied_vol, build_vol_surface
+from src.pricing.vol_surface import implied_vol, build_vol_surface, clean_option_chain
 
 bs = BlackScholes()
 
@@ -87,6 +87,103 @@ class TestBuildVolSurface:
         chain = self._make_chain()
         surface = build_vol_surface(chain, S=100, r=0.05)
         assert surface["implied_vol"].isna().sum() == 0
+
+    def test_cleaning_flag_filters_bad_rows(self):
+        rows = [
+            {
+                "expiry": "2026-10",
+                "strike": 100.0,
+                "bid": 6.8,
+                "ask": 7.2,
+                "volume": 100,
+                "openInterest": 200,
+                "T": 0.5,
+            },
+            {
+                "expiry": "2026-10",
+                "strike": 170.0,
+                "bid": 0.05,
+                "ask": 0.70,  # very wide spread + far OTM
+                "volume": 100,
+                "openInterest": 200,
+                "T": 0.5,
+            },
+        ]
+        chain = pd.DataFrame(rows)
+        chain["mid_price"] = (chain["bid"] + chain["ask"]) / 2.0
+
+        surface_unclean = build_vol_surface(chain, S=100, r=0.05, clean=False)
+        surface_clean = build_vol_surface(chain, S=100, r=0.05, clean=True)
+
+        assert len(surface_unclean) == 2
+        assert len(surface_clean) == 1
+
+
+class TestChainCleaning:
+    def _base_chain(self):
+        return pd.DataFrame(
+            [
+                {
+                    "expiry": "2026-07",
+                    "strike": 100.0,
+                    "bid": 5.8,
+                    "ask": 6.2,
+                    "volume": 10,
+                    "openInterest": 10,
+                    "T": 0.4,
+                },
+                {
+                    "expiry": "2026-07",
+                    "strike": 100.0,
+                    "bid": 5.8,
+                    "ask": 6.2,
+                    "volume": 10,
+                    "openInterest": 10,
+                    "T": 3.0 / 365.0,  # too close to expiry
+                },
+                {
+                    "expiry": "2026-07",
+                    "strike": 100.0,
+                    "bid": 2.0,
+                    "ask": 5.0,  # too wide spread
+                    "volume": 10,
+                    "openInterest": 10,
+                    "T": 0.4,
+                },
+                {
+                    "expiry": "2026-07",
+                    "strike": 170.0,  # moneyness > 1.3 for S=100
+                    "bid": 0.3,
+                    "ask": 0.4,
+                    "volume": 10,
+                    "openInterest": 10,
+                    "T": 0.4,
+                },
+            ]
+        )
+
+    def test_filters_min_days_to_expiry(self):
+        chain = self._base_chain()
+        cleaned = clean_option_chain(chain, S=100)
+        assert (cleaned["T"] >= 7.0 / 365.0).all()
+
+    def test_filters_relative_spread(self):
+        chain = self._base_chain()
+        cleaned = clean_option_chain(chain, S=100)
+        spreads = (cleaned["ask"] - cleaned["bid"]) / cleaned["mid_price"]
+        assert (spreads <= 0.35).all()
+
+    def test_filters_moneyness_range(self):
+        chain = self._base_chain()
+        cleaned = clean_option_chain(chain, S=100)
+        m = cleaned["strike"] / 100.0
+        assert (m >= 0.7).all()
+        assert (m <= 1.3).all()
+
+    def test_returns_expected_number_of_rows(self):
+        chain = self._base_chain()
+        cleaned = clean_option_chain(chain, S=100)
+        assert len(cleaned) == 1
 
 
 class TestDividend:

@@ -56,7 +56,8 @@ Fully rewritten — uses `src/pricing` throughout. Sections:
 
 ## What's next
 
-1. **Option chain cleaning** — the vol surface produces spikes from illiquid/near-expiry contracts. Need proper cleaning before IV calculation: minimum T cutoff (e.g. T > 7 days), bid-ask spread threshold, moneyness range filter, and optionally an arbitrage-free smoothing pass. See README for full TODO description.
+1. **Option chain cleaning** — completed in `src/pricing/vol_surface.py` with default filters for minimum T cutoff, bid-ask relative spread, moneyness range, and liquidity (volume/open interest when available).  
+   Remaining enhancement: optional smoothing/arbitrage-free pass after IV extraction.
 2. **Web frontend + API** — later phases, tech stack TBD.
 
 ## Conventions
