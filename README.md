@@ -156,6 +156,7 @@ Black-Scholes serves as the benchmark: all numerical method outputs are validate
 ```
 option_pricing_platform/
 ├── CLAUDE.md                        ← AI contributor context
+├── AGENTS.md                        ← AI usage policy and validation workflow
 ├── README.md
 ├── src/
 │   └── pricing/
