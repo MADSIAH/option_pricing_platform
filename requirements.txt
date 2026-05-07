@@ -1,0 +1,8 @@
+sqlalchemy
+apscheduler
+yfinance
+pandas
+numpy
+requests
+python-dotenv
+pytz

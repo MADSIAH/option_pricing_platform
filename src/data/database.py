@@ -1,0 +1,125 @@
+"""Database setup for Spec A data-fetching layer (SQLite + SQLAlchemy)."""
+
+from __future__ import annotations
+
+import os
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Iterator
+
+from sqlalchemy import Float, Index, Integer, String, UniqueConstraint, create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
+
+DEFAULT_DB_PATH = "data/market_data.db"
+
+
+class Base(DeclarativeBase):
+    """Base class for all ORM models."""
+
+
+class DailyPrice(Base):
+    """One row per ticker per trading day (append-only, 1y retention via cleanup job)."""
+
+    __tablename__ = "daily_prices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String, nullable=False)
+    date: Mapped[str] = mapped_column(String, nullable=False)  # ISO date, e.g. 2026-05-07
+    adj_close: Mapped[float] = mapped_column(Float, nullable=False)
+    source: Mapped[str] = mapped_column(String, nullable=False, default="yfinance")
+
+    __table_args__ = (
+        UniqueConstraint("ticker", "date", name="uq_daily_prices_ticker_date"),
+        Index("ix_daily_prices_ticker_date", "ticker", "date"),
+    )
+
+
+class LivePrice(Base):
+    """Latest intraday spot price per ticker (upsert)."""
+
+    __tablename__ = "live_price"
+
+    ticker: Mapped[str] = mapped_column(String, primary_key=True)
+    spot_price: Mapped[float] = mapped_column(Float, nullable=False)
+    dividend_yield: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    updated_at: Mapped[str] = mapped_column(String, nullable=False)  # UTC ISO datetime
+
+
+class VolSurface(Base):
+    """
+    WRDS OptionMetrics implied-vol surface table.
+
+    Kept empty in Spec A (stub-only integration this phase).
+    """
+
+    __tablename__ = "vol_surface"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String, nullable=False)
+    expiry: Mapped[str] = mapped_column(String, nullable=False)  # ISO date
+    strike: Mapped[float] = mapped_column(Float, nullable=False)
+    implied_vol: Mapped[float] = mapped_column(Float, nullable=False)
+    fetched_at: Mapped[str] = mapped_column(String, nullable=False)  # UTC ISO datetime
+
+    __table_args__ = (
+        Index("ix_vol_surface_ticker_fetched_at", "ticker", "fetched_at"),
+    )
+
+
+class RiskFreeRate(Base):
+    """Single-row table (id=1), upserted on each refresh."""
+
+    __tablename__ = "risk_free_rate"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rate: Mapped[float] = mapped_column(Float, nullable=False)  # decimal, e.g. 0.043
+    updated_at: Mapped[str] = mapped_column(String, nullable=False)  # UTC ISO datetime
+
+
+_ENGINE = None
+_SESSION_FACTORY: sessionmaker[Session] | None = None
+
+
+def _resolve_db_path() -> Path:
+    raw = os.getenv("DB_PATH", DEFAULT_DB_PATH).strip() or DEFAULT_DB_PATH
+    db_path = Path(raw)
+    if not db_path.is_absolute():
+        db_path = Path.cwd() / db_path
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return db_path
+
+
+def get_engine():
+    """Return singleton SQLAlchemy engine bound to SQLite DB_PATH."""
+    global _ENGINE
+    if _ENGINE is None:
+        db_path = _resolve_db_path()
+        _ENGINE = create_engine(f"sqlite:///{db_path.as_posix()}", future=True)
+    return _ENGINE
+
+
+def get_session_factory() -> sessionmaker[Session]:
+    """Return singleton Session factory."""
+    global _SESSION_FACTORY
+    if _SESSION_FACTORY is None:
+        _SESSION_FACTORY = sessionmaker(bind=get_engine(), autoflush=False, autocommit=False, future=True)
+    return _SESSION_FACTORY
+
+
+@contextmanager
+def session_scope() -> Iterator[Session]:
+    """Transactional session scope helper."""
+    session = get_session_factory()()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def init_db() -> None:
+    """Create all tables if they do not already exist."""
+    Base.metadata.create_all(bind=get_engine())

@@ -52,13 +52,14 @@ Fully rewritten — uses `src/pricing` throughout. Sections:
 
 ### Design spec
 
-`docs/superpowers/specs/2026-04-22-option-pricing-skills-design.md` — full design decisions and conventions.
+`docs/specs/2026-04-22-option-pricing-skills-design.md` — full design decisions and conventions.
 
 ## What's next
 
 1. **Option chain cleaning** — completed in `src/pricing/vol_surface.py` with default filters for minimum T cutoff, bid-ask relative spread, moneyness range, and liquidity (volume/open interest when available).  
    Remaining enhancement: optional smoothing/arbitrage-free pass after IV extraction.
-2. **Web frontend + API** — later phases, tech stack TBD.
+2. **Spec A data layer** — completed in `src/data/` (`database.py`, `fetcher.py`, `scheduler.py`) with SQLite + ET scheduling + validation script.
+3. **Web frontend + API** — next phases (Spec B/C and UI), tech stack TBD.
 
 ## Conventions
 

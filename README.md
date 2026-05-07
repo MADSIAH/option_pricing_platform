@@ -134,7 +134,7 @@ Black-Scholes serves as the benchmark: all numerical method outputs are validate
 
 ## Tech Stack
 
-> **Status: TBD** — final technology choices will be documented here as decisions are confirmed.
+> **Status:** core backend stack selected and implemented for pricing + data layer.
 
 | Layer | Technology | Status |
 |-------|-----------|--------|
@@ -143,10 +143,10 @@ Black-Scholes serves as the benchmark: all numerical method outputs are validate
 | Web framework | _TBD_ | — |
 | Frontend | _TBD_ | — |
 | API | _TBD_ | — |
-| Data ingestion | `yfinance`, FRED API | Done (notebook) |
-| Scheduling | `APScheduler` | Planned |
+| Data ingestion | `yfinance`, FRED API | **Done** (`src/data/fetcher.py`) |
+| Scheduling | `APScheduler` | **Done** (`src/data/scheduler.py`) |
 | LLM integration | _TBD_ | Nice to have |
-| Database | _TBD_ | — |
+| Database | SQLite + SQLAlchemy | **Done** (`src/data/database.py`) |
 | Deployment | _TBD_ | — |
 
 ---
@@ -158,29 +158,37 @@ option_pricing_platform/
 ├── CLAUDE.md                        ← AI contributor context
 ├── AGENTS.md                        ← AI usage policy and validation workflow
 ├── README.md
+├── requirements.txt
 ├── src/
-│   └── pricing/
-│       ├── base.py                  ← OptionParams, PricingResult, PricingModel ABC
-│       ├── utils.py                 ← shared d1/d2 (with dividend yield q)
-│       ├── black_scholes.py         ← BlackScholes (reference benchmark)
-│       ├── monte_carlo.py           ← MonteCarlo (antithetic variates)
-│       ├── binomial_tree.py         ← BinomialTree (CRR, American exercise)
-│       ├── greeks.py                ← AnalyticalGreeks (BS), NumericalGreeks (central diff)
-│       └── vol_surface.py           ← implied_vol (brentq), build_vol_surface
+│   ├── pricing/
+│   │   ├── base.py                  ← OptionParams, PricingResult, PricingModel ABC
+│   │   ├── utils.py                 ← shared d1/d2 (with dividend yield q)
+│   │   ├── black_scholes.py         ← BlackScholes (reference benchmark)
+│   │   ├── monte_carlo.py           ← MonteCarlo (antithetic variates)
+│   │   ├── binomial_tree.py         ← BinomialTree (CRR, American exercise)
+│   │   ├── greeks.py                ← AnalyticalGreeks (BS), NumericalGreeks (central diff)
+│   │   └── vol_surface.py           ← implied_vol (brentq), build_vol_surface
+│   └── data/
+│       ├── database.py              ← SQLite schema + init_db
+│       ├── fetcher.py               ← yfinance/FRED fetch + historical vol
+│       └── scheduler.py             ← APScheduler jobs + startup sequence
 ├── tests/
 │   ├── test_monte_carlo.py
 │   ├── test_binomial_tree.py
 │   ├── test_greeks.py
 │   └── test_vol_surface.py
+├── scripts/
+│   └── test_data.py                 ← manual SpecA data validation checks
 ├── notebooks/
 │   └── pricing.ipynb                ← AAPL demo: pricing, Greeks, vol surface
 ├── .claude/
 │   └── skills/
 │       └── option-pricing-methods.md
 └── docs/
-    └── superpowers/specs/
+    └── specs/
         ├── 2026-04-22-option-pricing-skills-design.md
-        └── 2026-04-26-dividend-yield-design.md
+        ├── 2026-04-26-dividend-yield-design.md
+        └── spec_A_data_fetching.md
 ```
 
 ---
@@ -203,6 +211,12 @@ option_pricing_platform/
 - [x] Option chain cleaning before IV calculation — minimum T cutoff, spread threshold, moneyness range, and liquidity filters integrated in `src/pricing/vol_surface.py`
 - [ ] American options — full framework beyond BT flag *(TBD)*
 
+### Phase 3a — Data Fetching Layer (Spec A)
+- [x] SQLite schema + table initialization (`src/data/database.py`)
+- [x] Daily backfill/refresh, live price refresh, risk-free rate fetch (`src/data/fetcher.py`)
+- [x] ET-based APScheduler jobs + startup sequence (`src/data/scheduler.py`)
+- [x] Manual DB validation script (`scripts/test_data.py`)
+
 ### Phase 3 — Frontend & AI
 - [ ] Web dashboard with pricing workflows
 - [ ] Interactive charts and volatility surface visualization
@@ -222,4 +236,4 @@ The project will be developed on GitHub with regular commits and documentation u
 
 ---
 
-*Work in progress — last updated April 2026.*
+*Work in progress — last updated May 2026.*

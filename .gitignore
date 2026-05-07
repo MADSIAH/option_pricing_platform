@@ -30,3 +30,6 @@ Thumbs.db
 # IDE
 .idea/
 .vscode/
+
+# Runtime data (Spec A)
+/data/
