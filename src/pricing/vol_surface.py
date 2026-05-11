@@ -162,5 +162,9 @@ def build_vol_surface(
             iv = np.nan
         records.append({"expiry": row["expiry"], "strike": row["strike"], "implied_vol": iv})
 
+    if not records:
+        empty_idx = pd.MultiIndex.from_tuples([], names=["expiry", "strike"])
+        return pd.DataFrame({"implied_vol": pd.Series(dtype=float)}, index=empty_idx)
+
     df = pd.DataFrame(records).set_index(["expiry", "strike"])
     return df
