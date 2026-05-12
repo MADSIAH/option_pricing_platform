@@ -20,28 +20,28 @@ An educational, AI-enhanced platform for options pricing, Greeks analysis, volat
   - [Core Features](#core-features)
     - [Option Pricing Engine](#option-pricing-engine)
     - [Greeks](#greeks)
-    - [Volatility Surface](#volatility-surface)
+    - [Volatilty Surface](#volatilty-surface)
+    - [Price surface](#price-surface)
     - [Web Frontend \& Dashboards](#web-frontend--dashboards)
     - [Real-Time Data Ingestion](#real-time-data-ingestion)
     - [API Layer](#api-layer)
   - [Nice to Have](#nice-to-have)
-  - [Pricing Methods](#pricing-methods)
   - [Tech Stack](#tech-stack)
   - [Repository Structure](#repository-structure)
   - [Roadmap](#roadmap)
     - [Phase 1 — Core Engine](#phase-1--core-engine)
     - [Phase 2 — Numerical Methods \& Data](#phase-2--numerical-methods--data)
-    - [Phase 3 — Frontend \& AI](#phase-3--frontend--ai)
-    - [Phase 4 — API, Polish \& Extensions](#phase-4--api-polish--extensions)
+    - [Phase 3 — Frontend \& API](#phase-3--frontend--api)
+    - [Phase 4 — Polish \& Extensions](#phase-4--polish--extensions)
   - [AI Contribution](#ai-contribution)
 
 ---
 
 ## Overview
 
-The objective of this project is building an options pricing platform. The platform prices options via Black-Scholes, Monte Carlo, and Binomial Tree methods; computes the full Greeks profile; constructs the implied volatility surface from live market data; and surfaces all of this through a web dashboard with an optional LLM explanation layer.
+Options pricing sits at the intersection of mathematics, statistics, and market microstructure. Understanding it requires not just computing a number, but grasping how model inputs — spot price, strike, maturity, implied volatility, risk-free rate — interact and what each Greek reveals about risk exposure.
 
-**Phases 1 & 2 complete.** The pricing engine, Greeks, and implied volatility surface are fully implemented and tested (47 passing tests). `notebooks/pricing.ipynb` demonstrates all three pricing methods on live AAPL data with convergence plots, a full Greeks table and delta-vs-spot chart, and a 3D implied volatility surface. Continuous dividend yield (`q`) is supported across all models via the Merton extension.
+This platform makes that understanding tangible. It computes option prices using both analytical and numerical methods, calculates the full Greek profile, constructs and visualizes the implied volatility surface, and explains outputs in natural language adapted to the user's background.
 
 ---
 
@@ -61,11 +61,13 @@ The platform is primarily **didactic**. It is designed for:
 
 ### Option Pricing Engine
 
-- Black-Scholes analytical pricing for European calls and puts (baseline benchmark)
-- Monte Carlo simulation for path-dependent and European payoffs
-- Binomial Tree pricing for European and American options
-- Side-by-side comparison of results across methods
+Available methods:
 
+|  | **European options** | **American options** |
+|---|---|---|
+| Closed-form | Black-Scholes (BS) | Barone-Adesi-Whaley (BAW) |
+| Simulations | Montecarlo (MC) | Longstaff-Schwartz |
+| Binomial Trees | Cox-Ross-Rubinstein (CRR) | Cox-Ross-Rubinstein (CRR) |
 ### Greeks
 
 All five main sensitivities computed for every pricing result:
@@ -78,32 +80,33 @@ All five main sensitivities computed for every pricing result:
 | Theta | Time to expiry |
 | Rho   | Risk-free interest rate |
 
-### Volatility Surface
+### Volatilty Surface
 
-- Implied volatility extracted from live option chains via Brent's root-finding on the BS price
-- Surface constructed across strike and maturity dimensions, interpolated to a continuous grid
-- 3D visualization in the notebook; interactive dashboard planned for the web frontend
+- Surface constructed across strike and maturity dimensions
+- Interactive 3D visualization via the web frontend
 
-> **Update:** Option-chain cleaning is now part of the volatility pipeline (`src/pricing/vol_surface.py`) with default filters for minimum time-to-expiry, bid-ask relative spread, moneyness range, and liquidity (volume/open interest when available). A smoothing/arbitrage-free post-processing pass is still planned as a future improvement.
+### Price surface
+- Surface constructed using closed-form solution.
+- Interactive 3D visualization comparing model and market option prices.
 
 ### Web Frontend & Dashboards
 
-- Clean, responsive UI with dedicated pricing and Greeks workflows
-- Interactive charts for sensitivity analysis and surface exploration
+- Responsive UI with dedicated pricing and Greeks workflows
+- Users can select a ticker to load real market data (spot, rates, vol) or define a fully custom underlying
 - Desktop-first; mobile-friendly target
 
 ### Real-Time Data Ingestion
 
 - Equity and option data via `yfinance`
 - Risk-free rates via the FRED API
-- Scheduled refresh every 10–60 minutes via `APScheduler`
+- Scheduled refresh every 60 minutes via `APScheduler`
 
 ### API Layer
 
-- Internal API exposing pricing and volatility endpoints
-- Rate limiting as baseline protection
-- Architecture kept open for future authentication
-
+- Built with FastAPI
+- Exposes pricing, market data, and visualization endpoints
+- Serves market data from DB and runs all option pricing and Greeks computations
+  
 ---
 
 ## Nice to Have
@@ -113,40 +116,25 @@ These are stretch goals — planned but not guaranteed for the final release:
 - **AI-powered explanations** — an LLM agent that interprets pricing outputs and Greeks in natural language, adapting depth to the user's stated level (`beginner`, `finance student`, `professional trader`)
 - **Trading strategy assistant** — a conversational agent that maps pricing analysis to common option strategies (covered calls, straddles, spreads) based on user-defined objectives and risk tolerance
 - **Advanced interactive visualization** — richer surface plots, payoff diagram builder, scenario analysis tools
-- **Dividend yield support** ✓ — all three pricing models, Greeks, and implied vol accept a continuous dividend yield `q` (Merton extension)
-- **American options — full framework** *(TBD)* — Binomial Tree already prices American puts via early-exercise flag; planned extension covers BS approximations (e.g. Barone-Adesi-Whaley) and American calls on dividend-paying stocks
-- **Crypto option extensions** — widen scope beyond vanilla equity contracts
+- **Exotic and crypto option extensions** — widen the financial scope beyond vanilla European contracts
 - **Mobile-optimized experience** — full responsiveness beyond basic layout adaptation
-
----
-
-## Pricing Methods
-
-| Method | Type | Scope |
-|--------|------|-------|
-| Black-Scholes | Analytical (closed-form) | European options — reference baseline |
-| Monte Carlo | Stochastic simulation | European; extensible to path-dependent payoffs |
-| Binomial Tree | Lattice (discrete-time) | European options |
-
-Black-Scholes serves as the benchmark: all numerical method outputs are validated against it wherever a closed-form solution exists.
 
 ---
 
 ## Tech Stack
 
-> **Status:** core backend stack selected and implemented for pricing + data layer.
+> **Status: TBD** — final technology choices will be documented here as decisions are confirmed.
 
 | Layer | Technology | Status |
 |-------|-----------|--------|
-| Pricing engine | Python (NumPy, SciPy) | **Done** |
-| Testing | `pytest` | **Done** |
+| Pricing engine | Python (NumPy, SciPy) | Copleted |
 | Web framework | _TBD_ | — |
 | Frontend | _TBD_ | — |
-| API | _TBD_ | — |
-| Data ingestion | `yfinance`, FRED API | **Done** (`src/data/fetcher.py`) |
-| Scheduling | `APScheduler` | **Done** (`src/data/scheduler.py`) |
+| API | FastAPI | WIP |
+| Data ingestion | `yfinance`, FRED API | Completed |
+| Scheduling | `APScheduler` | Completed |
 | LLM integration | _TBD_ | Nice to have |
-| Database | SQLite + SQLAlchemy | **Done** (`src/data/database.py`) |
+| Database | _TBD_ | Completed |
 | Deployment | _TBD_ | — |
 
 ---
@@ -154,41 +142,25 @@ Black-Scholes serves as the benchmark: all numerical method outputs are validate
 ## Repository Structure
 
 ```
-option_pricing_platform/
-├── CLAUDE.md                        ← AI contributor context
-├── AGENTS.md                        ← AI usage policy and validation workflow
-├── README.md
-├── requirements.txt
+
+├── docs/           #  Design specs and system documentation
+│
+├── frontend/     
+│ └── src/
+│ ├── components/   # UI components (inputs, charts, displays)
+│ └── lib/ 
+│
 ├── src/
-│   ├── pricing/
-│   │   ├── base.py                  ← OptionParams, PricingResult, PricingModel ABC
-│   │   ├── utils.py                 ← shared d1/d2 (with dividend yield q)
-│   │   ├── black_scholes.py         ← BlackScholes (reference benchmark)
-│   │   ├── monte_carlo.py           ← MonteCarlo (antithetic variates)
-│   │   ├── binomial_tree.py         ← BinomialTree (CRR, American exercise)
-│   │   ├── greeks.py                ← AnalyticalGreeks (BS), NumericalGreeks (central diff)
-│   │   └── vol_surface.py           ← implied_vol (brentq), build_vol_surface
-│   └── data/
-│       ├── database.py              ← SQLite schema + init_db
-│       ├── fetcher.py               ← yfinance/FRED fetch + historical vol
-│       └── scheduler.py             ← APScheduler jobs + startup sequence
-├── tests/
-│   ├── test_monte_carlo.py
-│   ├── test_binomial_tree.py
-│   ├── test_greeks.py
-│   └── test_vol_surface.py
-├── scripts/
-│   └── test_data.py                 ← manual SpecA data validation checks
-├── notebooks/
-│   └── pricing.ipynb                ← AAPL demo: pricing, Greeks, vol surface
-├── .claude/
-│   └── skills/
-│       └── option-pricing-methods.md
-└── docs/
-    └── specs/
-        ├── 2026-04-22-option-pricing-skills-design.md
-        ├── 2026-04-26-dividend-yield-design.md
-        └── spec_A_data_fetching.md
+│ ├── data/         # Data layer (DB access + schedulers)
+│ └── pricing/      # Pricing engine (all models + Greeks)
+│
+├── scripts/        # Utility scripts
+├── notebooks/      # Prototyping notebook
+│
+├── tests/          # Unit tests for pricing models
+│
+├── requirements.txt
+└── README.md
 ```
 
 ---
@@ -196,36 +168,28 @@ option_pricing_platform/
 ## Roadmap
 
 ### Phase 1 — Core Engine
-- [x] Repository setup and project scaffolding
-- [x] Black-Scholes pricing for European calls and puts (`src/pricing/black_scholes.py`)
-- [x] Monte Carlo pricing with antithetic variates (`src/pricing/monte_carlo.py`)
-- [x] Binomial Tree pricing — European + American (`src/pricing/binomial_tree.py`)
-- [x] Notebook demo with plots and method comparison (`notebooks/pricing.ipynb`)
-- [x] Baseline test suite (14 passing tests)
+- [x] Repository setup
+- [x]] Black-Scholes, MonteCarlo and Binomial sample pricing for European options
+- [x] Greeks computation
+- [x] Baseline test suite
 
 ### Phase 2 — Numerical Methods & Data
 - [x] Market data ingestion (`yfinance`, FRED)
-- [x] Greeks: analytical BS (Merton) + central-difference fallback for MC/BT
-- [x] Continuous dividend yield `q` across all models and Greeks
-- [x] Volatility surface construction (implied vol via Brent's method, 47 passing tests)
-- [x] Option chain cleaning before IV calculation — minimum T cutoff, spread threshold, moneyness range, and liquidity filters integrated in `src/pricing/vol_surface.py`
-- [ ] American options — full framework beyond BT flag *(TBD)*
+- [x] Monte Carlo pricing
+- [x] Binomial Tree pricing
+- [x] Volatility surface construction
 
-### Phase 3a — Data Fetching Layer (Spec A)
-- [x] SQLite schema + table initialization (`src/data/database.py`)
-- [x] Daily backfill/refresh, live price refresh, risk-free rate fetch (`src/data/fetcher.py`)
-- [x] ET-based APScheduler jobs + startup sequence (`src/data/scheduler.py`)
-- [x] Manual DB validation script (`scripts/test_data.py`)
-
-### Phase 3 — Frontend & AI
+### Phase 3 — Frontend & API
+- [x] Server setup
+- [x] Data pipeline scheduler initialization
+- [ ] API layer design
 - [ ] Web dashboard with pricing workflows
 - [ ] Interactive charts and volatility surface visualization
-- [ ] LLM explanation module *(nice to have)*
 
-### Phase 4 — API, Polish & Extensions
-- [ ] Public-facing API with rate limiting
-- [ ] Mobile UX refinement
-- [ ] Crypto, American and Exotic option extensions *(nice to have)*
+### Phase 4 — Polish & Extensions
+- [ ] Mobile UX refinement 
+- [ ] LLM explanation module *(nice to have)*
+- [ ] Exotic options or crypto extensions *(nice to have)*
 - [ ] Trading strategy assistant *(nice to have)*
 
 ---
@@ -236,4 +200,4 @@ The project will be developed on GitHub with regular commits and documentation u
 
 ---
 
-*Work in progress — last updated May 2026.*
+*Work in progress — last updated May 12, 2026.*
