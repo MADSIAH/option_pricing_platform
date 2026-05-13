@@ -1,4 +1,4 @@
-"""APScheduler orchestration for Spec A data jobs."""
+"""APScheduler orchestration for Spec B data jobs."""
 
 from __future__ import annotations
 
@@ -6,14 +6,16 @@ import logging
 import os
 import time
 from datetime import datetime, timedelta
+from functools import wraps
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import delete
 
-from .database import DailyPrice, LivePrice, init_db, session_scope
+from .database import DailyPrice, LivePrice, OptionChain, VolSurface, init_db, session_scope
 from .fetcher import (
     ET,
     backfill_daily_prices,
+    fetch_and_store_option_data,
     fetch_risk_free_rate,
     is_market_open,
     refresh_daily_price,
@@ -31,6 +33,21 @@ WATCHED_TICKERS: set[str] = {
 scheduler = BackgroundScheduler(timezone="America/New_York")
 
 
+def safe_job(func):
+    """Prevent a single scheduler job failure from crashing the process."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            logger.exception("Job %s failed", func.__name__)
+            return None
+
+    return wrapper
+
+
+@safe_job
 def backfill_all_tickers() -> None:
     for ticker in sorted(WATCHED_TICKERS):
         try:
@@ -40,6 +57,7 @@ def backfill_all_tickers() -> None:
             logger.exception("backfill_daily_prices failed | ticker=%s", ticker)
 
 
+@safe_job
 def refresh_all_live_prices() -> None:
     if not is_market_open():
         logger.info("refresh_all_live_prices skipped: market closed (ET).")
@@ -53,6 +71,7 @@ def refresh_all_live_prices() -> None:
             logger.exception("refresh_live_price failed | ticker=%s", ticker)
 
 
+@safe_job
 def refresh_all_daily_prices() -> None:
     for ticker in sorted(WATCHED_TICKERS):
         try:
@@ -62,6 +81,24 @@ def refresh_all_daily_prices() -> None:
             logger.exception("refresh_daily_price failed | ticker=%s", ticker)
 
 
+@safe_job
+def refresh_all_option_data() -> None:
+    if not is_market_open():
+        logger.info("refresh_all_option_data skipped: market closed (ET).")
+        return
+
+    for ticker in sorted(WATCHED_TICKERS):
+        try:
+            ok = fetch_and_store_option_data(ticker)
+            if ok:
+                logger.info("refresh_option_data | ticker=%s success=true", ticker)
+            else:
+                logger.error("refresh_option_data | ticker=%s success=false", ticker)
+        except Exception:
+            logger.exception("refresh_option_data failed | ticker=%s", ticker)
+
+
+@safe_job
 def refresh_risk_free_rate() -> None:
     try:
         rate = fetch_risk_free_rate()
@@ -70,6 +107,7 @@ def refresh_risk_free_rate() -> None:
         logger.exception("refresh_risk_free_rate failed")
 
 
+@safe_job
 def cleanup_old_rows() -> None:
     cutoff_date = (datetime.now(ET).date() - timedelta(days=365)).isoformat()
     with session_scope() as session:
@@ -103,6 +141,8 @@ def remove_ticker(ticker: str) -> None:
     WATCHED_TICKERS.remove(norm)
     with session_scope() as session:
         session.execute(delete(LivePrice).where(LivePrice.ticker == norm))
+        session.execute(delete(OptionChain).where(OptionChain.ticker == norm))
+        session.execute(delete(VolSurface).where(VolSurface.ticker == norm))
     logger.info("remove_ticker complete | ticker=%s", norm)
 
 
@@ -120,6 +160,13 @@ def configure_jobs() -> None:
         hour=18,
         minute=30,
         id="refresh_all_daily_prices",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        refresh_all_option_data,
+        trigger="interval",
+        minutes=60,
+        id="refresh_all_option_data",
         replace_existing=True,
     )
     scheduler.add_job(
@@ -146,6 +193,7 @@ def startup_sequence() -> None:
     backfill_all_tickers()
     refresh_risk_free_rate()
     refresh_all_live_prices()
+    refresh_all_option_data()
 
 
 def run_forever() -> None:

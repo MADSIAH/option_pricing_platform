@@ -1,4 +1,4 @@
-"""Database setup for Spec A data-fetching layer (SQLite + SQLAlchemy)."""
+"""Database setup for Spec B data-fetching layer (SQLite + SQLAlchemy)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-from sqlalchemy import Float, Index, Integer, String, UniqueConstraint, create_engine
+from sqlalchemy import Float, Index, Integer, String, UniqueConstraint, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 DEFAULT_DB_PATH = "data/market_data.db"
@@ -45,11 +45,35 @@ class LivePrice(Base):
     updated_at: Mapped[str] = mapped_column(String, nullable=False)  # UTC ISO datetime
 
 
+class OptionChain(Base):
+    """Latest option-chain snapshot per ticker (replace-on-refresh)."""
+
+    __tablename__ = "option_chain"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String, nullable=False)
+    expiry: Mapped[str] = mapped_column(String, nullable=False)  # ISO date
+    strike: Mapped[float] = mapped_column(Float, nullable=False)
+    option_type: Mapped[str] = mapped_column(String, nullable=False)  # call | put
+    bid: Mapped[float] = mapped_column(Float, nullable=False)
+    ask: Mapped[float] = mapped_column(Float, nullable=False)
+    mid_price: Mapped[float] = mapped_column(Float, nullable=False)
+    volume: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    open_interest: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    implied_vol: Mapped[float] = mapped_column(Float, nullable=False)
+    T: Mapped[float] = mapped_column(Float, nullable=False)  # years to expiry
+    fetched_at: Mapped[str] = mapped_column(String, nullable=False)  # UTC ISO datetime
+
+    __table_args__ = (
+        Index("ix_option_chain_ticker_expiry_type", "ticker", "expiry", "option_type"),
+    )
+
+
 class VolSurface(Base):
     """
-    WRDS OptionMetrics implied-vol surface table.
+    Latest implied-vol surface snapshot per ticker.
 
-    Kept empty in Spec A (stub-only integration this phase).
+    Populated from yfinance option-chain impliedVolatility in Spec B.
     """
 
     __tablename__ = "vol_surface"
@@ -59,6 +83,7 @@ class VolSurface(Base):
     expiry: Mapped[str] = mapped_column(String, nullable=False)  # ISO date
     strike: Mapped[float] = mapped_column(Float, nullable=False)
     implied_vol: Mapped[float] = mapped_column(Float, nullable=False)
+    T: Mapped[float] = mapped_column(Float, nullable=False)  # years to expiry
     fetched_at: Mapped[str] = mapped_column(String, nullable=False)  # UTC ISO datetime
 
     __table_args__ = (
@@ -121,5 +146,17 @@ def session_scope() -> Iterator[Session]:
 
 
 def init_db() -> None:
-    """Create all tables if they do not already exist."""
-    Base.metadata.create_all(bind=get_engine())
+    """
+    Create all tables if they do not already exist.
+
+    Also applies lightweight SQLite schema evolution needed for Spec B.
+    """
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
+
+    # SQLite create_all() does not ALTER existing tables; add new columns if needed.
+    with engine.begin() as conn:
+        table_info = conn.execute(text("PRAGMA table_info(vol_surface)")).fetchall()
+        existing_cols = {str(row[1]) for row in table_info}
+        if "T" not in existing_cols:
+            conn.execute(text("ALTER TABLE vol_surface ADD COLUMN T REAL"))

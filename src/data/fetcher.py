@@ -1,28 +1,80 @@
-"""Fetching and calculation utilities for Spec A data layer."""
+"""Fetching and calculation utilities for Spec B data layer."""
 
 from __future__ import annotations
 
 import csv
+import logging
 from datetime import datetime, timezone
 from io import StringIO
+from typing import Any
 
 import numpy as np
 import pandas as pd
 import pytz
 import requests
 import yfinance as yf
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-from .database import DailyPrice, LivePrice, RiskFreeRate, session_scope
+from .database import DailyPrice, LivePrice, OptionChain, RiskFreeRate, VolSurface, session_scope
 
 ET = pytz.timezone("America/New_York")
 TRADING_DAYS_PER_YEAR = 252
 FRED_DGS10_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10"
+MIN_OPTION_T_YEARS = 30.0 / 365.0
+MAX_REASONABLE_IV = 2.0
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_ticker(ticker: str) -> str:
     return ticker.strip().upper()
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        if value is None:
+            return default
+        if pd.isna(value):
+            return default
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _extract_spot_price(yf_ticker: Any) -> float | None:
+    fast_info = getattr(yf_ticker, "fast_info", None)
+    if fast_info is not None:
+        try:
+            spot = fast_info.get("last_price")
+            if spot is not None:
+                spot_value = float(spot)
+                if spot_value > 0:
+                    return spot_value
+        except Exception:
+            pass
+
+    try:
+        info = yf_ticker.info or {}
+    except Exception:
+        info = {}
+
+    for key in ("regularMarketPrice", "currentPrice"):
+        spot = info.get(key)
+        if spot is not None:
+            spot_value = _safe_float(spot, default=0.0)
+            if spot_value > 0:
+                return spot_value
+    return None
 
 
 def is_market_open() -> bool:
@@ -180,6 +232,233 @@ def refresh_live_price(ticker: str) -> None:
 
     with session_scope() as session:
         session.execute(upsert_stmt)
+
+
+def store_option_chain(ticker: str, df: pd.DataFrame) -> None:
+    """
+    Replace latest option_chain snapshot for one ticker.
+
+    Strategy follows Spec B: delete previous rows for ticker, then insert new snapshot.
+    """
+    ticker = _normalize_ticker(ticker)
+    if df.empty:
+        return
+
+    required = {
+        "ticker",
+        "expiry",
+        "strike",
+        "option_type",
+        "bid",
+        "ask",
+        "mid_price",
+        "volume",
+        "open_interest",
+        "implied_vol",
+        "T",
+        "fetched_at",
+    }
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"Missing option_chain columns: {sorted(missing)}")
+
+    records = [
+        {
+            "ticker": ticker,
+            "expiry": str(row["expiry"]),
+            "strike": float(row["strike"]),
+            "option_type": str(row["option_type"]),
+            "bid": float(row["bid"]),
+            "ask": float(row["ask"]),
+            "mid_price": float(row["mid_price"]),
+            "volume": _safe_int(row["volume"]),
+            "open_interest": _safe_int(row["open_interest"]),
+            "implied_vol": float(row["implied_vol"]),
+            "T": float(row["T"]),
+            "fetched_at": str(row["fetched_at"]),
+        }
+        for _, row in df.iterrows()
+    ]
+
+    with session_scope() as session:
+        session.execute(delete(OptionChain).where(OptionChain.ticker == ticker))
+        if records:
+            session.execute(sqlite_insert(OptionChain).values(records))
+
+
+def store_vol_surface(ticker: str, df: pd.DataFrame) -> None:
+    """
+    Replace latest vol_surface snapshot for one ticker.
+
+    Strategy follows Spec B: delete previous rows for ticker, then insert new snapshot.
+    """
+    ticker = _normalize_ticker(ticker)
+    if df.empty:
+        return
+
+    required = {"ticker", "expiry", "strike", "implied_vol", "T", "fetched_at"}
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"Missing vol_surface columns: {sorted(missing)}")
+
+    records = [
+        {
+            "ticker": ticker,
+            "expiry": str(row["expiry"]),
+            "strike": float(row["strike"]),
+            "implied_vol": float(row["implied_vol"]),
+            "T": float(row["T"]),
+            "fetched_at": str(row["fetched_at"]),
+        }
+        for _, row in df.iterrows()
+    ]
+
+    with session_scope() as session:
+        session.execute(delete(VolSurface).where(VolSurface.ticker == ticker))
+        if records:
+            session.execute(sqlite_insert(VolSurface).values(records))
+
+
+def fetch_and_store_option_data(ticker: str) -> bool:
+    """
+    Fetch all option expiries from yfinance and persist option_chain + vol_surface.
+
+    Returns True on success, False on any fetch/validation failure.
+    """
+    ticker = _normalize_ticker(ticker)
+    try:
+        yf_ticker = yf.Ticker(ticker)
+        spot = _extract_spot_price(yf_ticker)
+        if spot is None or spot <= 0:
+            logger.error("option_data fetch failed | ticker=%s | missing spot", ticker)
+            return False
+
+        expiries = list(getattr(yf_ticker, "options", []) or [])
+        if not expiries:
+            logger.error("option_data fetch failed | ticker=%s | no expiries", ticker)
+            return False
+
+        today_et = datetime.now(ET).date()
+        moneyness_min = spot * 0.7
+        moneyness_max = spot * 1.3
+        rows: list[pd.DataFrame] = []
+
+        for expiry in expiries:
+            try:
+                expiry_date = pd.Timestamp(expiry).date()
+            except Exception:
+                continue
+
+            T_exp = (expiry_date - today_et).days / 365.0
+            if T_exp < MIN_OPTION_T_YEARS:
+                continue
+
+            try:
+                chain = yf_ticker.option_chain(expiry)
+            except Exception:
+                logger.exception("option_chain fetch error | ticker=%s | expiry=%s", ticker, expiry)
+                continue
+
+            for option_type, contracts in (("call", chain.calls), ("put", chain.puts)):
+                if contracts is None or contracts.empty:
+                    continue
+
+                df = contracts.copy()
+                strike_series = (
+                    pd.to_numeric(df["strike"], errors="coerce")
+                    if "strike" in df.columns
+                    else pd.Series(np.nan, index=df.index)
+                )
+                bid_series = (
+                    pd.to_numeric(df["bid"], errors="coerce")
+                    if "bid" in df.columns
+                    else pd.Series(np.nan, index=df.index)
+                )
+                ask_series = (
+                    pd.to_numeric(df["ask"], errors="coerce")
+                    if "ask" in df.columns
+                    else pd.Series(np.nan, index=df.index)
+                )
+                iv_series = (
+                    pd.to_numeric(df["impliedVolatility"], errors="coerce")
+                    if "impliedVolatility" in df.columns
+                    else pd.Series(np.nan, index=df.index)
+                )
+                volume_series = (
+                    pd.to_numeric(df["volume"], errors="coerce")
+                    if "volume" in df.columns
+                    else pd.Series(np.nan, index=df.index)
+                )
+                oi_series = (
+                    pd.to_numeric(df["openInterest"], errors="coerce")
+                    if "openInterest" in df.columns
+                    else pd.Series(np.nan, index=df.index)
+                )
+
+                df["strike"] = strike_series
+                df["bid"] = bid_series.fillna(0.0)
+                df["ask"] = ask_series
+                df["implied_vol"] = iv_series
+                df["volume"] = volume_series.fillna(0)
+                df["open_interest"] = oi_series.fillna(0)
+
+                df = df[
+                    (df["ask"] > 0)
+                    & (df["implied_vol"].notna())
+                    & (df["implied_vol"] > 0.01)
+                    & (df["implied_vol"] <= MAX_REASONABLE_IV)
+                    & (df["strike"] >= moneyness_min)
+                    & (df["strike"] <= moneyness_max)
+                ].copy()
+
+                if df.empty:
+                    continue
+
+                df["mid_price"] = np.where(df["bid"] == 0, df["ask"], (df["bid"] + df["ask"]) / 2.0)
+                df["ticker"] = ticker
+                df["expiry"] = expiry_date.isoformat()
+                df["option_type"] = option_type
+                df["T"] = float(T_exp)
+                rows.append(
+                    df[
+                        [
+                            "ticker",
+                            "expiry",
+                            "strike",
+                            "option_type",
+                            "bid",
+                            "ask",
+                            "mid_price",
+                            "volume",
+                            "open_interest",
+                            "implied_vol",
+                            "T",
+                        ]
+                    ]
+                )
+
+        if not rows:
+            logger.error("option_data fetch failed | ticker=%s | no rows after filtering", ticker)
+            return False
+
+        snapshot = pd.concat(rows, ignore_index=True)
+        fetched_at = datetime.now(timezone.utc).isoformat()
+        snapshot["fetched_at"] = fetched_at
+
+        # Keep raw chain for both calls and puts.
+        store_option_chain(ticker, snapshot)
+
+        # Keep vol surface from calls to avoid duplicated (expiry, strike) points.
+        surface = snapshot[snapshot["option_type"] == "call"][
+            ["ticker", "expiry", "strike", "implied_vol", "T", "fetched_at"]
+        ].copy()
+        if surface.empty:
+            surface = snapshot[["ticker", "expiry", "strike", "implied_vol", "T", "fetched_at"]].copy()
+        store_vol_surface(ticker, surface)
+        return True
+    except Exception:
+        logger.exception("option_data fetch failed | ticker=%s", ticker)
+        return False
 
 
 def calculate_historical_vol(ticker: str) -> float:

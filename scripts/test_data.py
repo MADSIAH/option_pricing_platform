@@ -1,4 +1,4 @@
-"""Manual validation script for Spec A data layer."""
+"""Manual validation script for Spec B data layer."""
 
 from __future__ import annotations
 
@@ -8,13 +8,21 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from src.data.database import DailyPrice, LivePrice, RiskFreeRate, VolSurface, init_db, session_scope
+from src.data.database import (
+    DailyPrice,
+    LivePrice,
+    OptionChain,
+    RiskFreeRate,
+    VolSurface,
+    init_db,
+    session_scope,
+)
 from src.data.fetcher import ET, TRADING_DAYS_PER_YEAR, calculate_historical_vol, is_market_open
 
 
@@ -84,12 +92,82 @@ def main() -> None:
         assert 0.01 <= rate <= 0.15, f"[FAIL] risk_free_rate out of expected range: {rate}"
         print(f"[OK] risk_free_rate present and in range: {rate:.6f}")
 
-        # 6) vol_surface table exists and is empty in this phase
-        vol_surface_count = session.scalar(select(func.count()).select_from(VolSurface)) or 0
-        assert vol_surface_count == 0, (
-            f"[FAIL] vol_surface should be empty in Spec A, found {vol_surface_count} rows"
-        )
-        print("[OK] vol_surface exists and is empty")
+        # 7) option_chain has rows for each watched ticker
+        for ticker in tickers:
+            chain_count = session.scalar(
+                select(func.count()).select_from(OptionChain).where(OptionChain.ticker == ticker)
+            ) or 0
+            assert chain_count > 0, f"[FAIL] option_chain has no rows for {ticker}"
+            print(f"[OK] option_chain rows for {ticker}: {chain_count}")
+
+        # 8) option_chain rows have non-null implied_vol, strike, expiry, T
+        for ticker in tickers:
+            invalid_chain_rows = session.scalar(
+                select(func.count())
+                .select_from(OptionChain)
+                .where(
+                    OptionChain.ticker == ticker,
+                    or_(
+                        OptionChain.implied_vol.is_(None),
+                        OptionChain.strike.is_(None),
+                        OptionChain.expiry.is_(None),
+                        OptionChain.expiry == "",
+                        OptionChain.T.is_(None),
+                    ),
+                )
+            ) or 0
+            assert invalid_chain_rows == 0, (
+                f"[FAIL] option_chain has {invalid_chain_rows} rows with null required fields for {ticker}"
+            )
+            print(f"[OK] option_chain required fields are non-null for {ticker}")
+
+        # 9) vol_surface has rows for each watched ticker
+        for ticker in tickers:
+            surface_count = session.scalar(
+                select(func.count()).select_from(VolSurface).where(VolSurface.ticker == ticker)
+            ) or 0
+            assert surface_count > 0, f"[FAIL] vol_surface has no rows for {ticker}"
+            print(f"[OK] vol_surface rows for {ticker}: {surface_count}")
+
+        # 10) vol_surface implied_vol values are between 0.01 and 2.0
+        for ticker in tickers:
+            bad_iv_count = session.scalar(
+                select(func.count())
+                .select_from(VolSurface)
+                .where(
+                    VolSurface.ticker == ticker,
+                    or_(VolSurface.implied_vol < 0.01, VolSurface.implied_vol > 2.0),
+                )
+            ) or 0
+            assert bad_iv_count == 0, (
+                f"[FAIL] vol_surface has {bad_iv_count} out-of-range implied_vol rows for {ticker}"
+            )
+            print(f"[OK] vol_surface implied_vol range valid for {ticker}")
+
+        # 11) vol_surface has no NaN/NULL implied_vol
+        for ticker in tickers:
+            null_iv_count = session.scalar(
+                select(func.count())
+                .select_from(VolSurface)
+                .where(VolSurface.ticker == ticker, VolSurface.implied_vol.is_(None))
+            ) or 0
+            assert null_iv_count == 0, (
+                f"[FAIL] vol_surface has {null_iv_count} NULL implied_vol rows for {ticker}"
+            )
+            print(f"[OK] vol_surface implied_vol non-null for {ticker}")
+
+        # 12) vol_surface only contains rows with T > 30/365
+        for ticker in tickers:
+            bad_t_count = session.scalar(
+                select(func.count())
+                .select_from(VolSurface)
+                .where(
+                    VolSurface.ticker == ticker,
+                    or_(VolSurface.T.is_(None), VolSurface.T <= (30.0 / 365.0)),
+                )
+            ) or 0
+            assert bad_t_count == 0, f"[FAIL] vol_surface has {bad_t_count} rows with T <= 30/365 for {ticker}"
+            print(f"[OK] vol_surface maturity filter valid for {ticker}")
 
     # 5) calculate_historical_vol returns reasonable float for each ticker
     for ticker in tickers:
@@ -98,7 +176,7 @@ def main() -> None:
         assert 0.05 <= sigma <= 1.5, f"[FAIL] sigma for {ticker} out of range: {sigma}"
         print(f"[OK] historical volatility for {ticker}: {sigma:.6f}")
 
-    print("\nAll Spec A data checks passed.")
+    print("\nAll Spec B data checks passed.")
 
 
 if __name__ == "__main__":
