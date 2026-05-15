@@ -20,7 +20,7 @@ An educational, AI-enhanced platform for options pricing, Greeks analysis, volat
   - [Core Features](#core-features)
     - [Option Pricing Engine](#option-pricing-engine)
     - [Greeks](#greeks)
-    - [Volatilty Surface](#volatilty-surface)
+    - [Volatility Surface](#volatility-surface)
     - [Price surface](#price-surface)
     - [Web Frontend \& Dashboards](#web-frontend--dashboards)
     - [Real-Time Data Ingestion](#real-time-data-ingestion)
@@ -80,7 +80,7 @@ All five main sensitivities computed for every pricing result:
 | Theta | Time to expiry |
 | Rho   | Risk-free interest rate |
 
-### Volatilty Surface
+### Volatility Surface
 
 - Surface constructed across strike and maturity dimensions
 - Interactive 3D visualization via the web frontend
@@ -127,10 +127,9 @@ These are stretch goals — planned but not guaranteed for the final release:
 
 | Layer | Technology | Status |
 |-------|-----------|--------|
-| Pricing engine | Python (NumPy, SciPy) | Copleted |
-| Web framework | _TBD_ | — |
-| Frontend | _TBD_ | — |
-| API | FastAPI | WIP |
+| Pricing engine | Python (NumPy, SciPy) | Completed |
+| API / Web framework | FastAPI + Uvicorn | Completed |
+| Frontend framework | Vue 3 + Vite + Tailwind CSS | WIP |
 | Data ingestion | `yfinance`, FRED API | Completed |
 | Scheduling | `APScheduler` | Completed |
 | LLM integration | _TBD_ | Nice to have |
@@ -151,6 +150,7 @@ These are stretch goals — planned but not guaranteed for the final release:
 │ └── lib/ 
 │
 ├── src/
+│ ├── api/          # FastAPI app, schemas, and route handlers
 │ ├── data/         # Data layer (DB access + schedulers)
 │ └── pricing/      # Pricing engine (all models + Greeks)
 │
@@ -182,7 +182,7 @@ These are stretch goals — planned but not guaranteed for the final release:
 ### Phase 3 — Frontend & API
 - [x] Server setup
 - [x] Data pipeline scheduler initialization
-- [ ] API layer design
+- [x] API layer (FastAPI — all endpoints running)
 - [ ] Web dashboard with pricing workflows
 - [ ] Interactive charts and volatility surface visualization
 
@@ -200,4 +200,4 @@ The project will be developed on GitHub with regular commits and documentation u
 
 ---
 
-*Work in progress — last updated May 12, 2026.*
+*Work in progress — last updated May 15, 2026.*
