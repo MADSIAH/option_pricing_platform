@@ -6,3 +6,5 @@ numpy
 requests
 python-dotenv
 pytz
+fastapi
+uvicorn[standard]

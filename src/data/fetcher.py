@@ -491,6 +491,77 @@ def calculate_historical_vol(ticker: str) -> float:
     return sigma
 
 
+def get_latest_live_price(ticker: str) -> dict[str, Any] | None:
+    """Return the latest live_price row for a ticker, or None if missing."""
+    ticker = _normalize_ticker(ticker)
+
+    with session_scope() as session:
+        row = session.scalar(select(LivePrice).where(LivePrice.ticker == ticker))
+
+    if row is None:
+        return None
+    return {
+        "ticker": row.ticker,
+        "spot_price": float(row.spot_price),
+        "dividend_yield": float(row.dividend_yield),
+        "updated_at": str(row.updated_at),
+    }
+
+
+def get_latest_risk_free_rate() -> dict[str, Any] | None:
+    """Return the latest risk_free_rate row, or None if missing."""
+    with session_scope() as session:
+        row = session.scalar(select(RiskFreeRate).where(RiskFreeRate.id == 1))
+
+    if row is None:
+        return None
+    return {
+        "rate": float(row.rate),
+        "updated_at": str(row.updated_at),
+    }
+
+
+def get_atm_vol(ticker: str) -> dict[str, Any] | None:
+    """
+    Return ATM implied vol from nearest expiry for ticker, or None if unavailable.
+
+    ATM is selected by taking the nearest expiry (minimum T), then the strike
+    closest to the latest spot price from live_price.
+    """
+    ticker = _normalize_ticker(ticker)
+    live = get_latest_live_price(ticker)
+    if live is None:
+        return None
+    spot = float(live["spot_price"])
+
+    with session_scope() as session:
+        nearest_t = session.scalar(
+            select(func.min(VolSurface.T)).where(VolSurface.ticker == ticker)
+        )
+        if nearest_t is None:
+            return None
+
+        rows = session.scalars(
+            select(VolSurface).where(
+                VolSurface.ticker == ticker,
+                VolSurface.T == float(nearest_t),
+            )
+        ).all()
+
+    if not rows:
+        return None
+
+    atm_row = min(rows, key=lambda row: abs(float(row.strike) - spot))
+    return {
+        "ticker": ticker,
+        "expiry": str(atm_row.expiry),
+        "strike": float(atm_row.strike),
+        "T": float(atm_row.T),
+        "implied_vol": float(atm_row.implied_vol),
+        "fetched_at": str(atm_row.fetched_at),
+    }
+
+
 def fetch_risk_free_rate() -> float:
     """
     Fetch US 10Y yield from FRED (DGS10), convert to decimal, and upsert.

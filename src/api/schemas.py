@@ -1,0 +1,262 @@
+"""Pydantic schemas for Spec C API endpoints."""
+
+from __future__ import annotations
+
+from enum import Enum
+
+from pydantic import BaseModel, Field, model_validator
+
+
+class OptionType(str, Enum):
+    call = "call"
+    put = "put"
+
+
+class OptionStyle(str, Enum):
+    european = "european"
+    american = "american"
+
+
+class PricingMethod(str, Enum):
+    black_scholes = "black_scholes"
+    monte_carlo = "monte_carlo"
+    binomial_tree = "binomial_tree"
+    baw = "baw"
+    longstaff_schwartz = "longstaff_schwartz"
+    all = "all"
+
+
+class SigmaType(str, Enum):
+    historical = "historical"
+    implied = "implied"
+
+
+class VaryBy(str, Enum):
+    S = "S"
+    T = "T"
+
+
+class OptionChainType(str, Enum):
+    call = "call"
+    put = "put"
+    both = "both"
+
+
+class HealthResponse(BaseModel):
+    status: str
+    db_reachable: bool
+
+
+class MarketResponse(BaseModel):
+    ticker: str
+    spot_price: float
+    historical_vol: float
+    atm_implied_vol: float | None
+    risk_free_rate: float
+    dividend_yield: float
+    updated_at: str
+    stale: bool
+    data_source: str = "database"
+
+
+class VolSurfacePoint(BaseModel):
+    expiry: str
+    T: float
+    strike: float
+    implied_vol: float
+
+
+class VolSurfaceResponse(BaseModel):
+    ticker: str
+    points: list[VolSurfacePoint]
+    updated_at: str
+    stale: bool
+    data_source: str = "database"
+
+
+class OptionChainRow(BaseModel):
+    expiry: str
+    strike: float
+    option_type: OptionType
+    bid: float
+    ask: float
+    mid_price: float
+    volume: int
+    open_interest: int
+    implied_vol: float
+    T: float
+    fetched_at: str
+
+
+class OptionChainResponse(BaseModel):
+    ticker: str
+    option_type: OptionChainType
+    rows: list[OptionChainRow]
+    updated_at: str
+    stale: bool
+    data_source: str = "database"
+
+
+class PriceRequest(BaseModel):
+    ticker: str | None = None
+    S: float | None = None
+    K: float = Field(..., gt=0)
+    T: float = Field(..., gt=0)
+    r: float | None = None
+    q: float | None = None
+    sigma: float | None = Field(default=None, gt=0)
+    sigma_type: SigmaType = SigmaType.historical
+    option_type: OptionType
+    style: OptionStyle
+    method: PricingMethod = PricingMethod.all
+    mc_paths: int = Field(default=50_000, gt=0, le=100_000)
+
+    @model_validator(mode="after")
+    def validate_custom_stock_requirements(self) -> "PriceRequest":
+        if self.ticker is None:
+            missing = [
+                name
+                for name, value in (
+                    ("S", self.S),
+                    ("r", self.r),
+                    ("q", self.q),
+                    ("sigma", self.sigma),
+                )
+                if value is None
+            ]
+            if missing:
+                raise ValueError("Custom stock requires S, r, q, sigma")
+        return self
+
+
+class PriceSurfaceRequest(BaseModel):
+    ticker: str
+    K: float = Field(..., gt=0)
+    option_type: OptionType
+    style: OptionStyle
+    sigma: float | None = Field(default=None, gt=0)
+    sigma_type: SigmaType = SigmaType.historical
+    S: float | None = Field(default=None, gt=0)
+    r: float | None = None
+    q: float | None = Field(default=None, ge=0)
+
+
+class GreeksProfileRequest(BaseModel):
+    ticker: str | None = None
+    S: float | None = Field(default=None, gt=0)
+    K: float = Field(..., gt=0)
+    T: float = Field(..., gt=0)
+    r: float | None = None
+    q: float | None = Field(default=None, ge=0)
+    sigma: float | None = Field(default=None, gt=0)
+    sigma_type: SigmaType = SigmaType.historical
+    option_type: OptionType
+    vary_by: VaryBy
+    range_min: float
+    range_max: float
+    steps: int = Field(default=50, ge=2, le=500)
+
+    @model_validator(mode="after")
+    def validate_ranges_and_custom_stock(self) -> "GreeksProfileRequest":
+        if self.range_max <= self.range_min:
+            raise ValueError("range_max must be greater than range_min")
+
+        if self.vary_by == VaryBy.S and self.range_min <= 0:
+            raise ValueError("S range_min must be positive")
+        if self.vary_by == VaryBy.T and self.range_min <= 0:
+            raise ValueError("T range_min must be positive")
+
+        if self.ticker is None:
+            missing = [
+                name
+                for name, value in (
+                    ("S", self.S),
+                    ("r", self.r),
+                    ("q", self.q),
+                    ("sigma", self.sigma),
+                )
+                if value is None
+            ]
+            if missing:
+                raise ValueError("Custom stock requires S, r, q, sigma")
+        return self
+
+
+class GreekValues(BaseModel):
+    delta: float
+    gamma: float
+    vega: float
+    theta: float
+    rho: float
+
+
+class PriceModelOutput(BaseModel):
+    price: float
+    greeks: GreekValues
+
+
+class PriceResponse(BaseModel):
+    ticker: str | None = None
+    option_type: OptionType
+    style: OptionStyle
+    method: PricingMethod
+    S: float
+    K: float
+    T: float
+    r: float
+    q: float
+    sigma: float
+    sigma_source: str
+    sigma_fallback: bool = False
+    prices: dict[str, PriceModelOutput]
+    data_source: str
+    updated_at: str | None = None
+    stale: bool = False
+
+
+class PriceSurfacePoint(BaseModel):
+    S: float
+    T: float
+    price: float
+
+
+class PriceSurfaceResponse(BaseModel):
+    ticker: str
+    option_type: OptionType
+    style: OptionStyle
+    K: float
+    S_ref: float
+    sigma: float
+    sigma_source: str
+    sigma_fallback: bool = False
+    points: list[PriceSurfacePoint]
+    data_source: str
+    updated_at: str
+    stale: bool
+
+
+class GreeksProfilePoint(BaseModel):
+    x: float
+    delta: float
+    gamma: float
+    vega: float
+    theta: float
+    rho: float
+
+
+class GreeksProfileResponse(BaseModel):
+    ticker: str | None = None
+    option_type: OptionType
+    vary_by: VaryBy
+    K: float
+    S: float
+    T: float
+    r: float
+    q: float
+    sigma: float
+    sigma_source: str
+    sigma_fallback: bool = False
+    points: list[GreeksProfilePoint]
+    data_source: str
+    updated_at: str | None = None
+    stale: bool = False
