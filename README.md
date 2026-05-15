@@ -134,7 +134,7 @@ These are stretch goals — planned but not guaranteed for the final release:
 | Data ingestion | `yfinance`, FRED API | Completed |
 | Scheduling | `APScheduler` | Completed |
 | LLM integration | _TBD_ | Nice to have |
-| Database | _TBD_ | Completed |
+| Database | SQLite | Completed |
 | Deployment | _TBD_ | — |
 
 ---
@@ -169,7 +169,7 @@ These are stretch goals — planned but not guaranteed for the final release:
 
 ### Phase 1 — Core Engine
 - [x] Repository setup
-- [x]] Black-Scholes, MonteCarlo and Binomial sample pricing for European options
+- [x] Black-Scholes, MonteCarlo and Binomial sample pricing for European options
 - [x] Greeks computation
 - [x] Baseline test suite
 
