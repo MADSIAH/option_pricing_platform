@@ -20,7 +20,7 @@ from .database import DailyPrice, LivePrice, OptionChain, RiskFreeRate, VolSurfa
 
 ET = pytz.timezone("America/New_York")
 TRADING_DAYS_PER_YEAR = 252
-FRED_DGS10_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10"
+FRED_DTB3_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTB3"
 MIN_OPTION_T_YEARS = 30.0 / 365.0
 MAX_REASONABLE_IV = 2.0
 
@@ -495,13 +495,13 @@ def fetch_risk_free_rate() -> float:
     """
     Fetch US 10Y yield from FRED (DGS10), convert to decimal, and upsert.
     """
-    response = requests.get(FRED_DGS10_URL, timeout=20)
+    response = requests.get(FRED_DTB3_URL, timeout=20)
     response.raise_for_status()
 
     rows = list(csv.DictReader(StringIO(response.text)))
     dgs10_value = None
     for row in reversed(rows):
-        value = row.get("DGS10")
+        value = row.get("DTB3")
         if value not in (None, "", "."):
             dgs10_value = float(value)
             break
