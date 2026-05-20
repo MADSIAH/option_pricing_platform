@@ -99,6 +99,7 @@ All five main sensitivities computed for every pricing result:
 - Current-spot marker label rendered above the plot with padding to avoid clipping
 - Sensitivity chart x-axis locked to the computed range so curves reach both edges
 - Light/dark mode toggle in the header with persisted preference
+- Mobile header wraps pills and toggle with extra spacing on small screens
 
 ### Real-Time Data Ingestion
 
