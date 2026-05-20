@@ -8,6 +8,8 @@ const emit = defineEmits(['update:modelValue', 'update:ticker'])
 const showAdvanced = ref(false)
 const loading = ref(false)
 const error = ref(null)
+const showCustomInput = ref(false)
+const customTicker = ref('')
 
 function update(field, raw) {
   const value = raw === '' ? 0 : Number(raw)
@@ -15,28 +17,35 @@ function update(field, raw) {
 }
 
 async function selectTicker(t) {
-  emit('update:ticker', t)
+  const norm = t.trim().toUpperCase()
+  if (!norm) return
+  emit('update:ticker', norm)
   loading.value = true
   error.value = null
+  showCustomInput.value = false
+  customTicker.value = ''
   try {
-    const data = await fetchMarket(t)
+    const data = await fetchMarket(norm)
     const sigma = data.atm_implied_vol
       ? +(data.atm_implied_vol * 100).toFixed(2)
       : +(data.historical_vol * 100).toFixed(2)
-    const spot = +data.spot_price.toFixed(2)
     emit('update:modelValue', {
       ...props.modelValue,
-      S: spot,
-      K: +(spot * 1.02).toFixed(2),
+      S: +data.spot_price.toFixed(2),
       r: +(data.risk_free_rate * 100).toFixed(2),
       sigma,
       q: +(data.dividend_yield).toFixed(2),
     })
   } catch (e) {
-    error.value = 'Could not load market data'
+    error.value = `Could not load data for ${norm}`
+    emit('update:ticker', null)
   } finally {
     loading.value = false
   }
+}
+
+function submitCustom() {
+  if (customTicker.value.trim()) selectTicker(customTicker.value)
 }
 
 const moneyness = computed(() => {
@@ -79,7 +88,40 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
         >
           {{ t }}
         </button>
+        <button
+          @click="showCustomInput = !showCustomInput"
+          :class="[
+            'flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors',
+            showCustomInput
+              ? 'bg-slate-700 border-slate-500 text-slate-200'
+              : (!WATCHED_TICKERS.includes(ticker) && ticker)
+                ? 'bg-emerald-500 border-emerald-500 text-slate-950'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400'
+          ]"
+        >
+          {{ (!WATCHED_TICKERS.includes(ticker) && ticker) ? ticker : 'Other' }}
+        </button>
       </div>
+
+      <!-- Custom ticker input -->
+      <div v-if="showCustomInput" class="flex gap-2">
+        <input
+          v-model="customTicker"
+          @keydown.enter="submitCustom"
+          type="text"
+          placeholder="e.g. NVDA"
+          class="input-field flex-1 uppercase text-xs"
+          style="text-transform: uppercase;"
+          autofocus
+        />
+        <button
+          @click="submitCustom"
+          class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-semibold transition-colors"
+        >
+          Load
+        </button>
+      </div>
+
       <div v-if="loading" class="flex items-center gap-1.5 text-[11px] text-slate-500">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
         Loading market data…
@@ -149,7 +191,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
         <p class="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">Market Data</p>
         <span class="flex items-center gap-1 text-[10px] text-emerald-500">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          {{ ticker ? 'live · editable' : 'pre-filled · editable' }}
+          {{ ticker ? 'live · editable' : 'editable' }}
         </span>
       </div>
 

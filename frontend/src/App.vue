@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { compute, computeRange } from './lib/blackScholes.js'
+import { fetchRFR } from './lib/api.js'
 import NavBar from './components/NavBar.vue'
 import InputPanel from './components/InputPanel.vue'
 import PriceDisplay from './components/PriceDisplay.vue'
@@ -10,12 +11,20 @@ import SensitivityChart from './components/SensitivityChart.vue'
 const ticker = ref(null)
 
 const inputs = ref({
-  S: 150,
-  K: 155,
-  T: 90,
-  r: 4.50,
-  sigma: 20.0,
-  q: 0.0,
+  S: 0,
+  K: 0,
+  T: 0,
+  r: 0,
+  sigma: 0,
+  q: 0,
+})
+
+onMounted(async () => {
+  try {
+    inputs.value.r = await fetchRFR()
+  } catch {
+    // leave r at 0 if API unavailable
+  }
 })
 
 const result = computed(() => {
