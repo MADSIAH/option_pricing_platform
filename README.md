@@ -98,6 +98,9 @@ All five main sensitivities computed for every pricing result:
 - Sensitivity chart legend displayed above the plot for clarity
 - Current-spot marker label rendered above the plot with padding to avoid clipping
 - Sensitivity chart x-axis locked to the computed range so curves reach both edges
+- Light/dark mode toggle in the header with persisted preference
+- Mobile header wraps pills and toggle with extra spacing on small screens
+- Selecting “Other” refreshes the risk-free rate while keeping manual inputs open
 
 ### Real-Time Data Ingestion
 
