@@ -94,6 +94,10 @@ All five main sensitivities computed for every pricing result:
 - Responsive UI with dedicated pricing and Greeks workflows
 - Users can select a ticker to load real market data (spot, rates, vol) or define a fully custom underlying
 - Desktop-first; mobile-friendly target
+- Advanced parameters expanded by default for faster input access
+- Sensitivity chart legend displayed above the plot for clarity
+- Current-spot marker label rendered above the plot with padding to avoid clipping
+- Sensitivity chart x-axis locked to the computed range so curves reach both edges
 
 ### Real-Time Data Ingestion
 

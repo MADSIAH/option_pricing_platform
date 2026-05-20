@@ -10,7 +10,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'update:ticker', 'update:method', 'update:optionStyle'])
 
-const showAdvanced = ref(false)
+const showAdvanced = ref(true)
 const loading = ref(false)
 const error = ref(null)
 

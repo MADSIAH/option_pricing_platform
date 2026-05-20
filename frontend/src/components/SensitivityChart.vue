@@ -35,6 +35,7 @@ const currentSpotPlugin = {
     ctx.fillStyle = 'rgba(148,163,184,0.7)'
     ctx.font = '10px JetBrains Mono, monospace'
     ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
     ctx.fillText(`$${S.toFixed(0)}`, xPx, chartArea.top - 6)
     ctx.restore()
   },
@@ -53,6 +54,8 @@ function buildChart(data) {
   if (chart) { chart.destroy(); chart = null }
 
   const { spots, calls, puts } = data
+  const xMin = spots[0]
+  const xMax = spots[spots.length - 1]
 
   chart = new Chart(canvasEl.value, {
     type: 'line',
@@ -90,17 +93,13 @@ function buildChart(data) {
       maintainAspectRatio: true,
       aspectRatio: window.innerWidth < 640 ? 1.4 : 2.2,
       interaction: { mode: 'index', intersect: false },
+      layout: {
+        padding: { top: 24 },
+      },
       plugins: {
         currentSpot: { value: props.currentS },
         legend: {
-          position: 'top',
-          labels: {
-            color: '#94a3b8',
-            font: { size: 12, family: 'Inter' },
-            usePointStyle: true,
-            pointStyleWidth: 12,
-            padding: 16,
-          },
+          display: false,
         },
         tooltip: {
           backgroundColor: '#1e293b',
@@ -118,6 +117,8 @@ function buildChart(data) {
       scales: {
         x: {
           type: 'linear',
+          min: xMin,
+          max: xMax,
           ticks: {
             color: '#475569',
             font: { size: 11, family: 'JetBrains Mono, monospace' },
@@ -157,9 +158,13 @@ function buildChart(data) {
 function updateChart(data) {
   if (!chart || !data) return
   const { spots, calls, puts } = data
+  const xMin = spots[0]
+  const xMax = spots[spots.length - 1]
   chart.data.datasets[0].data = spots.map((s, i) => ({ x: s, y: calls[i] }))
   chart.data.datasets[1].data = spots.map((s, i) => ({ x: s, y: puts[i] }))
   chart.config.options.plugins.currentSpot.value = props.currentS
+  chart.config.options.scales.x.min = xMin
+  chart.config.options.scales.x.max = xMax
   chart.update('active')
 }
 
@@ -180,9 +185,21 @@ onUnmounted(() => { if (chart) chart.destroy() })
 
 <template>
   <div class="card">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="section-label">Sensitivity Analysis</h2>
-      <span class="text-[10px] text-slate-600">Option price vs underlying spot</span>
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+      <div>
+        <h2 class="section-label">Sensitivity Analysis</h2>
+        <span class="text-[10px] text-slate-600">Option price vs underlying spot</span>
+      </div>
+      <div class="flex items-center gap-4 text-[11px] text-slate-300">
+        <span class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full border-2 border-emerald-400"></span>
+          Call Price
+        </span>
+        <span class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full border-2 border-rose-400"></span>
+          Put Price
+        </span>
+      </div>
     </div>
 
     <div v-if="chartData">
