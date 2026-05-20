@@ -52,7 +52,7 @@ async function loadPrices() {
       sigma: inputs.value.sigma / 100,
       style: optionStyle.value,
       method: 'all',
-      mc_paths: 5000,
+      mc_paths: optionStyle.value === 'european' ? 50000 : 5000,
     }
     const [callRes, putRes] = await Promise.all([
       priceOption({ ...base, option_type: 'call' }),
