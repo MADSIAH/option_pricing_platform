@@ -190,13 +190,14 @@ These are stretch goals — planned but not guaranteed for the final release:
 - [x] Server setup
 - [x] Data pipeline scheduler initialization
 - [x] API layer (FastAPI — all endpoints running)
-- [ ] Web dashboard with pricing workflows
-- [ ] Interactive charts and volatility surface visualization
+- [x] Web dashboard with pricing workflows
+- [x] Interactive charts for pricing + Greeks
+- [ ] Volatility/price surface visualization in the UI
 
 ### Phase 4 — Polish & Extensions
-- [ ] Mobile UX refinement 
+- [ ] Mobile UX refinement
 - [ ] LLM explanation module *(nice to have)*
-- [ ] Exotic options or crypto extensions *(nice to have)*
+- [x] Exotic options or crypto extensions *(nice to have)*
 - [ ] Trading strategy assistant *(nice to have)*
 
 ---
@@ -207,4 +208,4 @@ The project will be developed on GitHub with regular commits and documentation u
 
 ---
 
-*Work in progress — last updated May 15, 2026.*
+*Work in progress — last updated May 20, 2026.*
