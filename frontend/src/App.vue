@@ -51,7 +51,8 @@ async function loadPrices() {
       q: inputs.value.q / 100,
       sigma: inputs.value.sigma / 100,
       style: optionStyle.value,
-      method: method.value,
+      method: 'all',
+      mc_paths: 5000,
     }
     const [callRes, putRes] = await Promise.all([
       priceOption({ ...base, option_type: 'call' }),
@@ -65,6 +66,9 @@ async function loadPrices() {
     result.value = {
       call: { price: cm.price, ...cm.greeks },
       put:  { price: pm.price, ...pm.greeks },
+      allPrices: Object.fromEntries(
+        Object.entries(callRes.prices).map(([k, v]) => [k, { call: v.price, put: putRes.prices[k].price }])
+      ),
       sigma: callRes.sigma,
       method: method.value,
       style: optionStyle.value,
