@@ -1,14 +1,47 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { fetchMarket, WATCHED_TICKERS } from '../lib/api.js'
 
-const props = defineProps(['modelValue'])
-const emit = defineEmits(['update:modelValue'])
+const props = defineProps(['modelValue', 'ticker'])
+const emit = defineEmits(['update:modelValue', 'update:ticker'])
 
 const showAdvanced = ref(false)
+const loading = ref(false)
+const error = ref(null)
 
 function update(field, raw) {
   const value = raw === '' ? 0 : Number(raw)
   emit('update:modelValue', { ...props.modelValue, [field]: value })
+}
+
+async function selectTicker(t) {
+  emit('update:ticker', t)
+  loading.value = true
+  error.value = null
+  try {
+    const data = await fetchMarket(t)
+    const sigma = data.atm_implied_vol
+      ? +(data.atm_implied_vol * 100).toFixed(2)
+      : +(data.historical_vol * 100).toFixed(2)
+    emit('update:modelValue', {
+      ...props.modelValue,
+      S: +data.spot_price.toFixed(2),
+      r: +(data.risk_free_rate * 100).toFixed(2),
+      sigma,
+      q: +(data.dividend_yield).toFixed(2),
+    })
+  } catch (e) {
+    error.value = `Could not load data for ${t}`
+    emit('update:ticker', null)
+  } finally {
+    loading.value = false
+  }
+}
+
+function selectManual() {
+  emit('update:ticker', null)
+  emit('update:modelValue', { ...props.modelValue, S: 0, r: 0, sigma: 0, q: 0 })
+  error.value = null
 }
 
 const moneyness = computed(() => {
@@ -33,6 +66,45 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
         {{ moneyness.label }}
       </span>
     </div>
+
+    <!-- Ticker selector -->
+    <div class="mb-5 space-y-2">
+      <p class="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">Stock</p>
+      <div class="flex gap-2">
+        <button
+          v-for="t in WATCHED_TICKERS"
+          :key="t"
+          @click="selectTicker(t)"
+          :class="[
+            'flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors',
+            ticker === t
+              ? 'bg-emerald-500 border-emerald-500 text-slate-950'
+              : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400'
+          ]"
+        >
+          {{ t }}
+        </button>
+        <button
+          @click="selectManual"
+          :class="[
+            'flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors',
+            ticker === null
+              ? 'bg-emerald-500 border-emerald-500 text-slate-950'
+              : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400'
+          ]"
+        >
+          Other
+        </button>
+      </div>
+
+      <div v-if="loading" class="flex items-center gap-1.5 text-[11px] text-slate-500">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        Loading market data…
+      </div>
+      <div v-if="error" class="text-[11px] text-rose-400">{{ error }}</div>
+    </div>
+
+    <div class="border-t border-slate-800 mb-5"></div>
 
     <!-- Position group -->
     <div class="space-y-4">
@@ -94,7 +166,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
         <p class="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">Market Data</p>
         <span class="flex items-center gap-1 text-[10px] text-emerald-500">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          pre-filled · editable
+          {{ ticker ? 'live · editable' : 'editable' }}
         </span>
       </div>
 
