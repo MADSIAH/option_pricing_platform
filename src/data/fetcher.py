@@ -497,28 +497,26 @@ def get_latest_live_price(ticker: str) -> dict[str, Any] | None:
 
     with session_scope() as session:
         row = session.scalar(select(LivePrice).where(LivePrice.ticker == ticker))
-
-    if row is None:
-        return None
-    return {
-        "ticker": row.ticker,
-        "spot_price": float(row.spot_price),
-        "dividend_yield": float(row.dividend_yield),
-        "updated_at": str(row.updated_at),
-    }
+        if row is None:
+            return None
+        return {
+            "ticker": row.ticker,
+            "spot_price": float(row.spot_price),
+            "dividend_yield": float(row.dividend_yield),
+            "updated_at": str(row.updated_at),
+        }
 
 
 def get_latest_risk_free_rate() -> dict[str, Any] | None:
     """Return the latest risk_free_rate row, or None if missing."""
     with session_scope() as session:
         row = session.scalar(select(RiskFreeRate).where(RiskFreeRate.id == 1))
-
-    if row is None:
-        return None
-    return {
-        "rate": float(row.rate),
-        "updated_at": str(row.updated_at),
-    }
+        if row is None:
+            return None
+        return {
+            "rate": float(row.rate),
+            "updated_at": str(row.updated_at),
+        }
 
 
 def get_atm_vol(ticker: str) -> dict[str, Any] | None:
@@ -548,18 +546,18 @@ def get_atm_vol(ticker: str) -> dict[str, Any] | None:
             )
         ).all()
 
-    if not rows:
-        return None
+        if not rows:
+            return None
 
-    atm_row = min(rows, key=lambda row: abs(float(row.strike) - spot))
-    return {
-        "ticker": ticker,
-        "expiry": str(atm_row.expiry),
-        "strike": float(atm_row.strike),
-        "T": float(atm_row.T),
-        "implied_vol": float(atm_row.implied_vol),
-        "fetched_at": str(atm_row.fetched_at),
-    }
+        atm_row = min(rows, key=lambda row: abs(float(row.strike) - spot))
+        return {
+            "ticker": ticker,
+            "expiry": str(atm_row.expiry),
+            "strike": float(atm_row.strike),
+            "T": float(atm_row.T),
+            "implied_vol": float(atm_row.implied_vol),
+            "fetched_at": str(atm_row.fetched_at),
+        }
 
 
 def fetch_risk_free_rate() -> float:

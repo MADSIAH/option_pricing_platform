@@ -7,14 +7,15 @@ import PriceDisplay from './components/PriceDisplay.vue'
 import GreeksGrid from './components/GreeksGrid.vue'
 import SensitivityChart from './components/SensitivityChart.vue'
 
-// Default inputs – r and sigma pre-populated from market context shown in NavBar
+const ticker = ref(null)
+
 const inputs = ref({
   S: 150,
   K: 155,
-  T: 90,       // calendar days
-  r: 4.50,     // percent
-  sigma: 20.0, // percent (implied vol)
-  q: 0.0,      // percent dividend yield
+  T: 90,
+  r: 4.50,
+  sigma: 20.0,
+  q: 0.0,
 })
 
 const result = computed(() => {
@@ -33,14 +34,14 @@ const chartData = computed(() => {
 
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-100" style="font-family: Inter, system-ui, sans-serif;">
-    <NavBar :r="inputs.r" :sigma="inputs.sigma" />
+    <NavBar :r="inputs.r" :sigma="inputs.sigma" :ticker="ticker" />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
         <!-- Left: parameter inputs -->
         <div class="lg:col-span-2">
-          <InputPanel v-model="inputs" />
+          <InputPanel v-model="inputs" v-model:ticker="ticker" />
         </div>
 
         <!-- Right: results -->
