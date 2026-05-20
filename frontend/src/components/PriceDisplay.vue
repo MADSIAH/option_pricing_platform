@@ -1,8 +1,18 @@
 <script setup>
 defineProps({
-  result: { type: Object, default: null },
-  inputs: { type: Object, required: true },
+  result:  { type: Object,  default: null },
+  inputs:  { type: Object,  required: true },
+  loading: { type: Boolean, default: false },
+  error:   { type: String,  default: null },
 })
+
+const METHOD_LABELS = {
+  black_scholes:       'Black-Scholes',
+  monte_carlo:         'Monte Carlo',
+  binomial_tree:       'Binomial Tree',
+  baw:                 'Barone-Adesi-Whaley',
+  longstaff_schwartz:  'Longstaff-Schwartz',
+}
 
 function fmt(val, d = 4) {
   if (val == null || isNaN(val)) return '—'
@@ -28,10 +38,33 @@ function moneynessBadge(S, K, isCall) {
 
 <template>
   <div class="card">
-    <h2 class="section-label mb-4">Option Prices</h2>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="section-label">Option Prices</h2>
+      <div v-if="result" class="flex items-center gap-2">
+        <span class="text-[10px] font-semibold border border-violet-800/60 bg-violet-900/20 text-violet-300 rounded-full px-2.5 py-0.5">
+          {{ METHOD_LABELS[result.method] || result.method }}
+        </span>
+        <span class="text-[10px] font-semibold border border-blue-800/60 bg-blue-900/20 text-blue-300 rounded-full px-2.5 py-0.5 capitalize">
+          {{ result.style }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="loading" class="flex items-center justify-center h-28 gap-2 text-slate-500 text-sm">
+      <span class="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
+      Computing…
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="error" class="flex items-center justify-center h-28 text-rose-400 text-sm px-4 text-center">
+      {{ error }}
+    </div>
 
     <!-- Price cards -->
-    <div v-if="result" class="grid grid-cols-2 gap-4">
+    <div v-else-if="result" class="grid grid-cols-2 gap-4">
 
       <!-- Call -->
       <div class="bg-slate-950 rounded-xl border border-emerald-900/40 p-4 sm:p-5">
@@ -44,10 +77,6 @@ function moneynessBadge(S, K, isCall) {
         </div>
         <div class="text-2xl sm:text-3xl font-mono font-bold text-emerald-400 leading-none">
           ${{ fmtPrice(result.call.price) }}
-        </div>
-        <div class="mt-2.5 text-[11px] text-slate-600 font-mono space-y-0.5">
-          <div>d₁ = {{ fmt(result.d1) }}</div>
-          <div>d₂ = {{ fmt(result.d2) }}</div>
         </div>
       </div>
 
@@ -63,10 +92,6 @@ function moneynessBadge(S, K, isCall) {
         <div class="text-2xl sm:text-3xl font-mono font-bold text-rose-400 leading-none">
           ${{ fmtPrice(result.put.price) }}
         </div>
-        <div class="mt-2.5 text-[11px] text-slate-600 font-mono space-y-0.5">
-          <div>C − P = ${{ fmt(result.call.price - result.put.price, 4) }}</div>
-          <div>Parity = ${{ fmt(result.putCallParity, 4) }}</div>
-        </div>
       </div>
 
     </div>
@@ -76,13 +101,13 @@ function moneynessBadge(S, K, isCall) {
       Enter valid parameters to see prices
     </div>
 
-    <!-- Put-call parity verification -->
-    <div v-if="result" class="mt-4 pt-3 border-t border-slate-800">
-      <div class="flex items-center gap-2 text-[11px] text-slate-600 font-mono">
+    <!-- Put-call parity — only meaningful for European options -->
+    <div v-if="result && result.style === 'european'" class="mt-4 pt-3 border-t border-slate-800">
+      <div class="flex items-center gap-2 text-[11px] text-slate-600 font-mono flex-wrap">
         <span class="text-slate-700">Put-Call Parity</span>
         <span>C − P = Se^(−qT) − Ke^(−rT)</span>
-        <span class="ml-auto text-emerald-600">✓ {{ Math.abs(result.call.price - result.put.price - result.putCallParity) < 1e-8 ? 'exact' : 'Δ=' + (result.call.price - result.put.price - result.putCallParity).toExponential(2) }}</span>
       </div>
     </div>
+
   </div>
 </template>
