@@ -2,7 +2,12 @@
 import { ref, computed } from 'vue'
 import { fetchMarket, WATCHED_TICKERS } from '../lib/api.js'
 
-const props = defineProps(['modelValue', 'ticker', 'method', 'optionStyle'])
+const props = defineProps({
+  modelValue: Object,
+  ticker:     { type: String,  default: null },
+  method:     { type: String,  default: 'black_scholes' },
+  optionStyle:{ type: String,  default: 'european' },
+})
 const emit = defineEmits(['update:modelValue', 'update:ticker', 'update:method', 'update:optionStyle'])
 
 const showAdvanced = ref(false)

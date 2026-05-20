@@ -100,7 +100,7 @@ watch([inputs, method, optionStyle], () => {
             v-model="inputs"
             v-model:ticker="ticker"
             v-model:method="method"
-            v-model:option-style="optionStyle"
+            v-model:optionStyle="optionStyle"
           />
         </div>
 
