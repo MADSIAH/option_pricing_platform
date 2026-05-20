@@ -17,26 +17,27 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, Tooltip, 
 const currentSpotPlugin = {
   id: 'currentSpot',
   afterDraw(chart) {
-    const S = chart.config.options.plugins?.currentSpot?.value
-    if (S == null || !chart.scales.x) return
-    const { ctx, scales, chartArea } = chart
-    const xPx = scales.x.getPixelForValue(S)
-    if (xPx < chartArea.left || xPx > chartArea.right) return
+  const currentSpot = chart.config.options.plugins?.currentSpot
+  const S = currentSpot?.value
+  if (S == null || !chart.scales.x) return
+  const { ctx, scales, chartArea } = chart
+  const xPx = scales.x.getPixelForValue(S)
+  if (xPx < chartArea.left || xPx > chartArea.right) return
 
-    ctx.save()
-    ctx.beginPath()
-    ctx.moveTo(xPx, chartArea.top)
-    ctx.lineTo(xPx, chartArea.bottom)
-    ctx.lineWidth = 1.5
-    ctx.strokeStyle = 'rgba(148,163,184,0.35)'
-    ctx.setLineDash([5, 5])
-    ctx.stroke()
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(xPx, chartArea.top)
+  ctx.lineTo(xPx, chartArea.bottom)
+  ctx.lineWidth = 1.5
+  ctx.strokeStyle = currentSpot?.lineColor || 'rgba(148,163,184,0.35)'
+  ctx.setLineDash([5, 5])
+  ctx.stroke()
 
-    ctx.fillStyle = 'rgba(148,163,184,0.7)'
-    ctx.font = '10px JetBrains Mono, monospace'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'bottom'
-    ctx.fillText(`$${S.toFixed(0)}`, xPx, chartArea.top - 6)
+  ctx.fillStyle = currentSpot?.textColor || 'rgba(148,163,184,0.7)'
+  ctx.font = '10px JetBrains Mono, monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  ctx.fillText(`$${S.toFixed(0)}`, xPx, chartArea.top - 6)
     ctx.restore()
   },
 }
@@ -44,10 +45,40 @@ const currentSpotPlugin = {
 const props = defineProps({
   chartData: { type: Object, default: null },
   currentS: { type: Number, default: 0 },
+  theme: { type: String, default: 'dark' },
 })
 
 const canvasEl = ref(null)
 let chart = null
+
+function paletteForTheme(theme) {
+  if (theme === 'light') {
+    return {
+      tickColor: '#334155',
+      gridColor: '#e2e8f0',
+      borderColor: '#e2e8f0',
+      titleColor: '#64748b',
+      tooltipBg: '#ffffff',
+      tooltipBorder: '#e2e8f0',
+      tooltipTitle: '#64748b',
+      tooltipBody: '#0f172a',
+      spotLine: 'rgba(100,116,139,0.35)',
+      spotText: 'rgba(100,116,139,0.9)',
+    }
+  }
+  return {
+    tickColor: '#475569',
+    gridColor: '#1e293b',
+    borderColor: '#1e293b',
+    titleColor: '#475569',
+    tooltipBg: '#1e293b',
+    tooltipBorder: '#334155',
+    tooltipTitle: '#94a3b8',
+    tooltipBody: '#e2e8f0',
+    spotLine: 'rgba(148,163,184,0.35)',
+    spotText: 'rgba(148,163,184,0.7)',
+  }
+}
 
 function buildChart(data) {
   if (!canvasEl.value || !data) return
@@ -56,6 +87,7 @@ function buildChart(data) {
   const { spots, calls, puts } = data
   const xMin = spots[0]
   const xMax = spots[spots.length - 1]
+  const palette = paletteForTheme(props.theme)
 
   chart = new Chart(canvasEl.value, {
     type: 'line',
@@ -97,15 +129,15 @@ function buildChart(data) {
         padding: { top: 24 },
       },
       plugins: {
-        currentSpot: { value: props.currentS },
+        currentSpot: { value: props.currentS, lineColor: palette.spotLine, textColor: palette.spotText },
         legend: {
           display: false,
         },
         tooltip: {
-          backgroundColor: '#1e293b',
-          titleColor: '#94a3b8',
-          bodyColor: '#e2e8f0',
-          borderColor: '#334155',
+          backgroundColor: palette.tooltipBg,
+          titleColor: palette.tooltipTitle,
+          bodyColor: palette.tooltipBody,
+          borderColor: palette.tooltipBorder,
           borderWidth: 1,
           padding: 10,
           callbacks: {
@@ -120,33 +152,33 @@ function buildChart(data) {
           min: xMin,
           max: xMax,
           ticks: {
-            color: '#475569',
+            color: palette.tickColor,
             font: { size: 11, family: 'JetBrains Mono, monospace' },
             maxTicksLimit: 7,
             callback: (v) => `$${Number(v).toFixed(0)}`,
           },
-          grid: { color: '#1e293b' },
-          border: { color: '#1e293b' },
+          grid: { color: palette.gridColor },
+          border: { color: palette.borderColor },
           title: {
             display: true,
             text: 'Underlying Price (S)',
-            color: '#475569',
+            color: palette.titleColor,
             font: { size: 11 },
           },
         },
         y: {
           ticks: {
-            color: '#475569',
+            color: palette.tickColor,
             font: { size: 11, family: 'JetBrains Mono, monospace' },
             callback: (v) => `$${v.toFixed(2)}`,
           },
-          grid: { color: '#1e293b' },
-          border: { color: '#1e293b' },
+          grid: { color: palette.gridColor },
+          border: { color: palette.borderColor },
           beginAtZero: true,
           title: {
             display: true,
             text: 'Option Price',
-            color: '#475569',
+            color: palette.titleColor,
             font: { size: 11 },
           },
         },
@@ -160,9 +192,24 @@ function updateChart(data) {
   const { spots, calls, puts } = data
   const xMin = spots[0]
   const xMax = spots[spots.length - 1]
+  const palette = paletteForTheme(props.theme)
   chart.data.datasets[0].data = spots.map((s, i) => ({ x: s, y: calls[i] }))
   chart.data.datasets[1].data = spots.map((s, i) => ({ x: s, y: puts[i] }))
   chart.config.options.plugins.currentSpot.value = props.currentS
+  chart.config.options.plugins.currentSpot.lineColor = palette.spotLine
+  chart.config.options.plugins.currentSpot.textColor = palette.spotText
+  chart.config.options.plugins.tooltip.backgroundColor = palette.tooltipBg
+  chart.config.options.plugins.tooltip.titleColor = palette.tooltipTitle
+  chart.config.options.plugins.tooltip.bodyColor = palette.tooltipBody
+  chart.config.options.plugins.tooltip.borderColor = palette.tooltipBorder
+  chart.config.options.scales.x.ticks.color = palette.tickColor
+  chart.config.options.scales.x.grid.color = palette.gridColor
+  chart.config.options.scales.x.border.color = palette.borderColor
+  chart.config.options.scales.x.title.color = palette.titleColor
+  chart.config.options.scales.y.ticks.color = palette.tickColor
+  chart.config.options.scales.y.grid.color = palette.gridColor
+  chart.config.options.scales.y.border.color = palette.borderColor
+  chart.config.options.scales.y.title.color = palette.titleColor
   chart.config.options.scales.x.min = xMin
   chart.config.options.scales.x.max = xMax
   chart.update('active')
@@ -171,7 +218,7 @@ function updateChart(data) {
 onMounted(() => buildChart(props.chartData))
 
 watch(
-  () => [props.chartData, props.currentS],
+  () => [props.chartData, props.currentS, props.theme],
   ([newData]) => {
     if (!newData) return
     if (!chart) buildChart(newData)

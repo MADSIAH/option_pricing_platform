@@ -18,6 +18,107 @@
   }
 }
 
+.theme-light {
+  color-scheme: light;
+}
+
+.theme-light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.theme-light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+.theme-light .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+.theme-light .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+}
+
+.theme-light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+.theme-light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.theme-light .text-slate-400 {
+  color: #475569 !important;
+}
+
+.theme-light .text-slate-500 {
+  color: #64748b !important;
+}
+
+.theme-light .text-slate-600 {
+  color: #64748b !important;
+}
+
+.theme-light .text-slate-700 {
+  color: #475569 !important;
+}
+
+.theme-light .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light .border-slate-700 {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light .border-slate-800\/60 {
+  border-color: rgba(226, 232, 240, 0.6) !important;
+}
+
+.theme-light .border-emerald-900\/40 {
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.theme-light .border-rose-900\/40 {
+  border-color: rgba(244, 63, 94, 0.2) !important;
+}
+
+.theme-light .bg-blue-900\/20 {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+}
+
+.theme-light .bg-blue-900\/40 {
+  background-color: rgba(59, 130, 246, 0.16) !important;
+}
+
+.theme-light .border-blue-800\/60 {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+.theme-light .border-blue-800\/40 {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.theme-light .text-blue-300 {
+  color: #1d4ed8 !important;
+}
+
+.theme-light .text-violet-300 {
+  color: #6d28d9 !important;
+}
+
+.theme-light .bg-emerald-900\/30 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+
+.theme-light .border-emerald-700\/50 {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.theme-light .text-emerald-300 {
+  color: #059669 !important;
+}
+
 @layer components {
   .input-field {
     @apply w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5
@@ -41,4 +142,28 @@
   .section-label {
     @apply text-xs font-semibold uppercase tracking-wider text-slate-400;
   }
+}
+
+.theme-light .card {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.theme-light .input-field {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.theme-light .input-field::placeholder {
+  color: #94a3b8;
+}
+
+.theme-light .input-prefix,
+.theme-light .input-suffix {
+  color: #94a3b8;
+}
+
+.theme-light .section-label {
+  color: #64748b;
 }

@@ -18,7 +18,28 @@ const result = ref(null)
 const priceLoading = ref(false)
 const priceError = ref(null)
 
+const theme = ref('dark')
+
+function applyTheme(value) {
+  const root = document.documentElement
+  root.classList.toggle('theme-light', value === 'light')
+  localStorage.setItem('theme', value)
+}
+
+function toggleTheme() {
+  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  applyTheme(theme.value)
+}
+
 onMounted(async () => {
+  const storedTheme = localStorage.getItem('theme')
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    theme.value = storedTheme
+  } else {
+    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+    if (prefersLight) theme.value = 'light'
+  }
+  applyTheme(theme.value)
   try { inputs.value.r = await fetchRFR() } catch { /* leave at 0 */ }
 })
 
@@ -89,7 +110,7 @@ watch([inputs, method, optionStyle], () => {
 
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-100" style="font-family: Inter, system-ui, sans-serif;">
-    <NavBar :r="inputs.r" :sigma="inputs.sigma" :ticker="ticker" />
+    <NavBar :r="inputs.r" :sigma="inputs.sigma" :ticker="ticker" :theme="theme" @toggle-theme="toggleTheme" />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -113,7 +134,7 @@ watch([inputs, method, optionStyle], () => {
             :error="priceError"
           />
           <GreeksGrid :result="result" />
-          <SensitivityChart :chart-data="chartData" :current-s="inputs.S" />
+          <SensitivityChart :chart-data="chartData" :current-s="inputs.S" :theme="theme" />
         </div>
 
       </div>

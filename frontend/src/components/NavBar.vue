@@ -3,7 +3,10 @@ defineProps({
   r: { type: Number, default: 4.5 },
   sigma: { type: Number, default: 20 },
   ticker: { type: String, default: null },
+  theme: { type: String, default: 'dark' },
 })
+
+defineEmits(['toggle-theme'])
 
 const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 </script>
@@ -43,6 +46,20 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
             <span class="text-xs font-mono font-semibold text-blue-400">{{ sigma.toFixed(1) }}%</span>
           </div>
           <div class="text-[10px] text-slate-600 hidden md:block">{{ today }}</div>
+          <button
+            class="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300 transition-colors hover:border-emerald-500 hover:text-emerald-400"
+            @click="$emit('toggle-theme')"
+            type="button"
+            aria-label="Toggle light and dark mode"
+          >
+            <svg v-if="theme === 'light'" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36-1.42-1.42M7.05 7.05 5.64 5.64m12.72 0-1.41 1.41M7.05 16.95l-1.41 1.41M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" />
+            </svg>
+            <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79z" />
+            </svg>
+            <span>{{ theme === 'light' ? 'Dark' : 'Light' }}</span>
+          </button>
         </div>
 
       </div>
