@@ -192,10 +192,10 @@ These are stretch goals — planned but not guaranteed for the final release:
 - [x] API layer (FastAPI — all endpoints running)
 - [x] Web dashboard with pricing workflows
 - [x] Interactive charts for pricing + Greeks
-- [ ] Volatility/price surface visualization in the UI
+- [x] Volatility/price surface visualization in the UI
 
 ### Phase 4 — Polish & Extensions
-- [ ] Mobile UX refinement
+- [x] Mobile UX refinement
 - [ ] LLM explanation module *(nice to have)*
 - [x] Exotic options or crypto extensions *(nice to have)*
 - [ ] Trading strategy assistant *(nice to have)*
