@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { fetchMarket, WATCHED_TICKERS } from '../lib/api.js'
+import { fetchMarket, fetchRFR, WATCHED_TICKERS } from '../lib/api.js'
 
 const props = defineProps({
   modelValue: Object,
@@ -68,10 +68,19 @@ async function selectTicker(t) {
   }
 }
 
-function selectManual() {
+async function selectManual() {
   emit('update:ticker', null)
-  emit('update:modelValue', { ...props.modelValue, S: 0, r: 0, sigma: 0, q: 0 })
+  loading.value = true
   error.value = null
+  let r = 0
+  try {
+    r = await fetchRFR()
+  } catch (e) {
+    error.value = 'Could not load risk-free rate'
+  } finally {
+    emit('update:modelValue', { ...props.modelValue, S: 0, r, sigma: 0, q: 0 })
+    loading.value = false
+  }
 }
 
 const moneyness = computed(() => {
