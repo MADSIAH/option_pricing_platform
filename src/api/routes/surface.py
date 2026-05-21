@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 from scipy.interpolate import griddata
 from sqlalchemy import select
@@ -110,15 +110,31 @@ def _build_vol_surface_grid(rows: list, n_grid: int = 60) -> VolSurfaceGrid | No
 
 
 @router.get("/vol_surface/{ticker}", response_model=VolSurfaceResponse)
-def get_vol_surface(ticker: str) -> VolSurfaceResponse | JSONResponse:
+def get_vol_surface(
+    ticker: str,
+    option_type: str = Query(default="call"),
+) -> VolSurfaceResponse | JSONResponse:
     norm_ticker = ticker.strip().upper()
+    opt = option_type.lower().strip()
     try:
         with session_scope() as session:
-            rows = session.scalars(
-                select(VolSurface)
-                .where(VolSurface.ticker == norm_ticker)
-                .order_by(VolSurface.expiry.asc(), VolSurface.strike.asc())
-            ).all()
+            if opt == "put":
+                rows = session.scalars(
+                    select(OptionChain).where(
+                        OptionChain.ticker == norm_ticker,
+                        OptionChain.option_type == "put",
+                        OptionChain.T > (30 / 365),
+                        OptionChain.implied_vol > 0.01,
+                        OptionChain.implied_vol <= 2.0,
+                        OptionChain.bid > 0,
+                    ).order_by(OptionChain.expiry.asc(), OptionChain.strike.asc())
+                ).all()
+            else:
+                rows = session.scalars(
+                    select(VolSurface)
+                    .where(VolSurface.ticker == norm_ticker)
+                    .order_by(VolSurface.expiry.asc(), VolSurface.strike.asc())
+                ).all()
 
         if not rows:
             return JSONResponse(
@@ -188,16 +204,19 @@ def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONRe
         for T_val in T_range:
             row = []
             for K_val in K_range:
-                params = OptionParams(
-                    S=S_ref,
-                    K=float(K_val),
-                    T=float(T_val),
-                    r=r,
-                    sigma=sigma,
-                    option_type=payload.option_type.value,
-                    q=q,
-                )
-                row.append(float(model.price(params).price))
+                try:
+                    params = OptionParams(
+                        S=S_ref,
+                        K=float(K_val),
+                        T=float(T_val),
+                        r=r,
+                        sigma=sigma,
+                        option_type=payload.option_type.value,
+                        q=q,
+                    )
+                    row.append(float(model.price(params).price))
+                except Exception:
+                    row.append(float("nan"))
             z.append(row)
 
         # Market mid-prices overlay from option_chain table

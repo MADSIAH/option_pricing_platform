@@ -27,8 +27,8 @@ export async function priceOption(payload) {
   return res.json()
 }
 
-export async function fetchVolSurface(ticker) {
-  const res = await fetch(`${BASE}/vol_surface/${ticker}`)
+export async function fetchVolSurface(ticker, optionType = 'call') {
+  const res = await fetch(`${BASE}/vol_surface/${ticker}?option_type=${optionType}`)
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.reason || err.error || `Vol surface fetch failed: ${res.status}`)

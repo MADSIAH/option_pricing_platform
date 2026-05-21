@@ -26,33 +26,36 @@ function colors(theme) {
 function buildLayout(theme, title) {
   const c = colors(theme)
   return {
-    title: { text: title, font: { color: c.font, size: 13 }, x: 0.05 },
+    title: { text: title, font: { color: c.font, size: 13 }, x: 0.04 },
     paper_bgcolor: c.paper,
     plot_bgcolor:  c.plot,
     font: { color: c.font, size: 11 },
-    margin: { l: 0, r: 0, t: 50, b: 0 },
-    legend: { x: 0.01, y: 0.95, bgcolor: 'rgba(255,255,255,0.1)', font: { color: c.font } },
+    margin: { l: 10, r: 10, t: 55, b: 10 },
+    legend: { x: 0.01, y: 0.97, bgcolor: 'rgba(255,255,255,0.07)', font: { color: c.font, size: 10 } },
     scene: {
       bgcolor: c.plot,
+      aspectmode: 'cube',
+      camera: { eye: { x: 1.6, y: -1.9, z: 0.75 } },
       xaxis: {
-        title: { text: 'Strike K ($)', font: { color: c.font } },
-        tickfont: { color: c.font },
+        title: { text: 'Spot S ($)', font: { color: c.font, size: 11 } },
+        tickfont: { color: c.font, size: 9 },
+        tickprefix: '$',
         gridcolor: c.grid,
         zerolinecolor: c.grid,
       },
       yaxis: {
-        title: { text: 'Time to Maturity (years)', font: { color: c.font } },
-        tickfont: { color: c.font },
+        title: { text: 'Time to Maturity (years)', font: { color: c.font, size: 11 } },
+        tickfont: { color: c.font, size: 9 },
         gridcolor: c.grid,
         zerolinecolor: c.grid,
       },
       zaxis: {
-        title: { text: 'Option Price ($)', font: { color: c.font } },
-        tickfont: { color: c.font },
+        title: { text: 'Option Price ($)', font: { color: c.font, size: 11 } },
+        tickfont: { color: c.font, size: 9 },
+        tickprefix: '$',
         gridcolor: c.grid,
         zerolinecolor: c.grid,
       },
-      camera: { eye: { x: 1.6, y: -1.9, z: 0.75 } },
     },
   }
 }
@@ -78,13 +81,18 @@ async function loadAndPlot() {
     const label  = `${optionType.value.charAt(0).toUpperCase() + optionType.value.slice(1)}`
     const title  = `${data.style === 'european' ? 'BS' : 'BAW'} Price Surface — ${props.ticker} ${label}s  (σ = ${(data.sigma * 100).toFixed(1)}%,  S₀ = ${data.S_ref.toFixed(2)})`
 
+    // Mirror K → equivalent spot: x = 2*S_ref - K (notebook convention)
+    // Low K (ITM call) → high x; high K (OTM call) → low x
+    // Makes call prices rise as x increases, hockey stick blade on the right
+    const xVals = data.K_values.map(k => 2 * data.S_ref - k)
+
     const surfaceTrace = {
       type: 'surface',
       name: `${data.style === 'european' ? 'BS' : 'BAW'} model`,
-      x: data.K_values,
+      x: xVals,
       y: data.T_values,
       z: data.z,
-      colorscale: optionType.value === 'call' ? 'RdYlGn' : 'RdYlGn_r',
+      colorscale: optionType.value === 'call' ? 'Viridis' : 'Plasma',
       opacity: 0.82,
       colorbar: {
         title: { text: 'Price ($)', font: { color: c.font } },
@@ -103,7 +111,7 @@ async function loadAndPlot() {
         type: 'scatter3d',
         mode: 'markers',
         name: 'Market mid-price',
-        x: data.market_points.map(p => p.K),
+        x: data.market_points.map(p => 2 * data.S_ref - p.K),
         y: data.market_points.map(p => p.T),
         z: data.market_points.map(p => p.mid_price),
         marker: { size: 2.5, color: 'black', opacity: 0.8 },
@@ -166,6 +174,6 @@ onUnmounted(() => { if (plotEl.value) Plotly.purge(plotEl.value) })
     <div v-else-if="error" class="flex items-center justify-center h-64 text-rose-400 text-sm">
       {{ error }}
     </div>
-    <div v-else ref="plotEl" style="height: 500px;" class="w-full"></div>
+    <div v-else ref="plotEl" style="height: 560px;" class="w-full"></div>
   </div>
 </template>

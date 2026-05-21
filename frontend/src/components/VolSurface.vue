@@ -22,28 +22,31 @@ function colors(theme) {
 function buildLayout(theme, title) {
   const c = colors(theme)
   return {
-    title: { text: title, font: { color: c.font, size: 13 }, x: 0.05 },
+    title: { text: title, font: { color: c.font, size: 13 }, x: 0.04 },
     paper_bgcolor: c.paper,
     plot_bgcolor:  c.plot,
     font: { color: c.font, size: 11 },
-    margin: { l: 0, r: 0, t: 50, b: 0 },
+    margin: { l: 10, r: 10, t: 55, b: 10 },
     scene: {
       bgcolor: c.plot,
+      aspectmode: 'cube',
+      camera: { eye: { x: 1.5, y: -1.8, z: 0.8 } },
       xaxis: {
-        title: { text: 'Time to Maturity (years)', font: { color: c.font } },
-        tickfont: { color: c.font },
+        title: { text: 'Time to Maturity (years)', font: { color: c.font, size: 11 } },
+        tickfont: { color: c.font, size: 9 },
         gridcolor: c.grid,
         zerolinecolor: c.grid,
       },
       yaxis: {
-        title: { text: 'Strike (K)', font: { color: c.font } },
-        tickfont: { color: c.font },
+        title: { text: 'Strike K ($)', font: { color: c.font, size: 11 } },
+        tickfont: { color: c.font, size: 9 },
         gridcolor: c.grid,
         zerolinecolor: c.grid,
       },
       zaxis: {
-        title: { text: 'Implied Volatility (%)', font: { color: c.font } },
-        tickfont: { color: c.font },
+        title: { text: 'Implied Volatility (%)', font: { color: c.font, size: 11 } },
+        tickfont: { color: c.font, size: 9 },
+        ticksuffix: '%',
         gridcolor: c.grid,
         zerolinecolor: c.grid,
       },
@@ -55,32 +58,29 @@ async function loadAndPlot() {
   if (!props.ticker || !plotEl.value) return
   loading.value = true
   error.value   = null
+  plotted       = false
   try {
-    const data   = await fetchVolSurface(props.ticker)
-    const title  = `Implied Volatility Surface — ${props.ticker} (calls)`
-    const layout = buildLayout(props.theme, title)
-    const config = { responsive: true }
+    const data  = await fetchVolSurface(props.ticker)
+    const title = `Implied Volatility Surface — ${props.ticker}`
+    const c     = colors(props.theme)
 
     let traces
-
     if (data.grid) {
-      // Smooth interpolated surface — matches notebook
       traces = [{
         type: 'surface',
         x: data.grid.T_values,
         y: data.grid.K_values,
         z: data.grid.z,
-        colorscale: 'RdYlGn_r',
+        colorscale: 'Plasma',
         colorbar: {
-          title: { text: 'IV (%)', font: { color: colors(props.theme).font } },
-          tickfont: { color: colors(props.theme).font },
-          thickness: 14,
-          len: 0.7,
+          title: { text: 'IV (%)', font: { color: c.font, size: 11 } },
+          tickfont: { color: c.font, size: 9 },
+          ticksuffix: '%',
+          thickness: 14, len: 0.65, x: 1.01,
         },
-        hovertemplate: 'T: %{x:.3f}y<br>Strike: %{y:.1f}<br>IV: %{z:.2f}%<extra></extra>',
+        hovertemplate: 'T: %{x:.3f}y<br>K: $%{y:.1f}<br>IV: %{z:.1f}%<extra></extra>',
       }]
     } else {
-      // Fallback: scatter3d when not enough points to interpolate
       traces = [{
         type: 'scatter3d',
         mode: 'markers',
@@ -90,24 +90,21 @@ async function loadAndPlot() {
         marker: {
           size: 5,
           color: data.points.map(p => p.implied_vol * 100),
-          colorscale: 'RdYlGn_r',
+          colorscale: 'Plasma',
           showscale: true,
           colorbar: {
-            title: { text: 'IV (%)', font: { color: colors(props.theme).font } },
-            tickfont: { color: colors(props.theme).font },
-            thickness: 14,
+            title: { text: 'IV (%)', font: { color: c.font, size: 11 } },
+            tickfont: { color: c.font, size: 9 },
+            ticksuffix: '%',
+            thickness: 14, len: 0.65, x: 1.01,
           },
         },
-        hovertemplate: 'T: %{x:.3f}y<br>Strike: %{y:.1f}<br>IV: %{z:.2f}%<extra></extra>',
+        hovertemplate: 'T: %{x:.3f}y<br>K: $%{y:.1f}<br>IV: %{z:.1f}%<extra></extra>',
       }]
     }
 
-    if (plotted) {
-      Plotly.react(plotEl.value, traces, layout, config)
-    } else {
-      Plotly.newPlot(plotEl.value, traces, layout, config)
-      plotted = true
-    }
+    Plotly.newPlot(plotEl.value, traces, buildLayout(props.theme, title), { responsive: true })
+    plotted = true
   } catch (e) {
     error.value = e.message
   } finally {
@@ -116,7 +113,7 @@ async function loadAndPlot() {
 }
 
 onMounted(() => loadAndPlot())
-watch(() => [props.ticker, props.theme], () => { plotted = false; loadAndPlot() })
+watch(() => [props.ticker, props.theme], () => loadAndPlot())
 onUnmounted(() => { if (plotEl.value) Plotly.purge(plotEl.value) })
 </script>
 
@@ -139,6 +136,6 @@ onUnmounted(() => { if (plotEl.value) Plotly.purge(plotEl.value) })
     <div v-else-if="error" class="flex items-center justify-center h-64 text-rose-400 text-sm">
       {{ error }}
     </div>
-    <div v-else ref="plotEl" style="height: 460px;" class="w-full"></div>
+    <div v-else ref="plotEl" style="height: 520px;" class="w-full"></div>
   </div>
 </template>

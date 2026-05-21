@@ -73,7 +73,7 @@ async function selectTicker(t) {
       S: +data.spot_price.toFixed(2),
       r: +(data.risk_free_rate * 100).toFixed(2),
       sigma,
-      q: +(data.dividend_yield * 100).toFixed(2),
+      q: +(data.dividend_yield).toFixed(2),
     })
   } catch (e) {
     error.value = `Could not load data for ${t}`

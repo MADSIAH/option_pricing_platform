@@ -156,7 +156,7 @@ watch([inputs, method, optionStyle], () => {
             :error="priceError"
           />
           <GreeksGrid :result="result" />
-          <SensitivityChart :chart-data="chartData" :current-s="inputs.S" :theme="theme" />
+          <SensitivityChart v-if="optionStyle === 'european'" :chart-data="chartData" :current-s="inputs.S" :theme="theme" />
         </div>
 
       </div>
