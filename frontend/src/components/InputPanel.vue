@@ -28,6 +28,13 @@ watch(() => props.sigmaType, (type) => {
 const showAdvanced = ref(true)
 const loading = ref(false)
 const error = ref(null)
+const updatedAt = ref(null)
+
+function fmtUpdated(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
 
 const EUROPEAN_METHODS = [
   { value: 'black_scholes', label: 'Black-Scholes' },
@@ -68,6 +75,7 @@ async function selectTicker(t) {
     lastHistoricalVol.value = +(data.historical_vol * 100).toFixed(2)
     lastImpliedVol.value = data.atm_implied_vol != null ? +(data.atm_implied_vol * 100).toFixed(2) : null
     const sigma = sigmaForType(props.sigmaType)
+    updatedAt.value = data.updated_at ?? null
     emit('update:modelValue', {
       ...props.modelValue,
       S: +data.spot_price.toFixed(2),
@@ -87,6 +95,7 @@ async function selectManual() {
   emit('update:ticker', null)
   loading.value = true
   error.value = null
+  updatedAt.value = null
   let r = 0
   try {
     r = await fetchRFR()
@@ -198,7 +207,10 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
       <p class="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">Position</p>
 
       <div class="space-y-1.5">
-        <label class="text-xs text-slate-400 font-medium">Underlying Price <span class="text-slate-600">(S)</span></label>
+        <div class="flex items-baseline justify-between">
+          <label class="text-xs text-slate-400 font-medium">Underlying Price <span class="text-slate-600">(S)</span></label>
+          <span v-if="updatedAt" class="text-[10px] text-emerald-500 font-mono">last updated: {{ fmtUpdated(updatedAt) }}</span>
+        </div>
         <div class="relative">
           <span class="input-prefix">$</span>
           <input type="number" :value="modelValue.S" @input="update('S', $event.target.value)"
