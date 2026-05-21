@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "http://209.38.239.83:8000/api/v1/:path*"
+    }
+  ]
+}

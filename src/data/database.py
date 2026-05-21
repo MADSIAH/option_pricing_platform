@@ -127,7 +127,7 @@ def get_session_factory() -> sessionmaker[Session]:
     """Return singleton Session factory."""
     global _SESSION_FACTORY
     if _SESSION_FACTORY is None:
-        _SESSION_FACTORY = sessionmaker(bind=get_engine(), autoflush=False, autocommit=False, future=True)
+        _SESSION_FACTORY = sessionmaker(bind=get_engine(), autoflush=False, autocommit=False, future=True, expire_on_commit=False)
     return _SESSION_FACTORY
 
 
