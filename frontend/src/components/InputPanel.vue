@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { fetchMarket, fetchRFR, WATCHED_TICKERS } from '../lib/api.js'
 
 const props = defineProps({
@@ -7,8 +7,23 @@ const props = defineProps({
   ticker:     { type: String,  default: null },
   method:     { type: String,  default: 'black_scholes' },
   optionStyle:{ type: String,  default: 'european' },
+  sigmaType:  { type: String,  default: 'implied' },
 })
-const emit = defineEmits(['update:modelValue', 'update:ticker', 'update:method', 'update:optionStyle'])
+const emit = defineEmits(['update:modelValue', 'update:ticker', 'update:method', 'update:optionStyle', 'update:sigmaType'])
+
+const lastHistoricalVol = ref(null)
+const lastImpliedVol = ref(null)
+
+function sigmaForType(type) {
+  if (type === 'implied') return lastImpliedVol.value ?? lastHistoricalVol.value ?? props.modelValue.sigma
+  return lastHistoricalVol.value ?? props.modelValue.sigma
+}
+
+watch(() => props.sigmaType, (type) => {
+  if (!props.ticker) return
+  const val = sigmaForType(type)
+  if (val != null) emit('update:modelValue', { ...props.modelValue, sigma: val })
+})
 
 const showAdvanced = ref(true)
 const loading = ref(false)
@@ -57,9 +72,9 @@ async function selectTicker(t) {
   error.value = null
   try {
     const data = await fetchMarket(t)
-    const sigma = data.atm_implied_vol
-      ? +(data.atm_implied_vol * 100).toFixed(2)
-      : +(data.historical_vol * 100).toFixed(2)
+    lastHistoricalVol.value = +(data.historical_vol * 100).toFixed(2)
+    lastImpliedVol.value = data.atm_implied_vol != null ? +(data.atm_implied_vol * 100).toFixed(2) : null
+    const sigma = sigmaForType(props.sigmaType)
     updatedAt.value = data.updated_at ?? null
     emit('update:modelValue', {
       ...props.modelValue,
@@ -246,13 +261,28 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs text-slate-400 font-medium">Implied Volatility <span class="text-slate-600">(σ)</span></label>
+        <div class="flex items-center justify-between">
+          <label class="text-xs text-slate-400 font-medium">
+            {{ sigmaType === 'implied' ? 'Implied' : 'Historical' }} Volatility
+            <span class="text-slate-600">(σ)</span>
+          </label>
+          <div class="flex rounded-md overflow-hidden border border-slate-700 text-[10px] font-semibold">
+            <button
+              @click="emit('update:sigmaType', 'implied')"
+              :class="['px-2 py-0.5 transition-colors', sigmaType === 'implied' ? 'bg-violet-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-violet-400']"
+            >IV</button>
+            <button
+              @click="emit('update:sigmaType', 'historical')"
+              :class="['px-2 py-0.5 transition-colors', sigmaType === 'historical' ? 'bg-violet-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-violet-400']"
+            >HV</button>
+          </div>
+        </div>
         <div class="relative">
           <input type="number" :value="modelValue.sigma" @input="update('sigma', $event.target.value)"
             class="input-field pr-8" min="0.1" step="0.1" placeholder="20.0" />
           <span class="input-suffix">%</span>
         </div>
-        <p class="text-[11px] text-slate-600">Annualized implied vol for this option</p>
+        <p class="text-[11px] text-slate-600">Annualized {{ sigmaType === 'implied' ? 'implied' : 'historical' }} vol</p>
       </div>
     </div>
 

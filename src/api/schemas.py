@@ -66,9 +66,16 @@ class VolSurfacePoint(BaseModel):
     implied_vol: float
 
 
+class VolSurfaceGrid(BaseModel):
+    T_values: list[float]
+    K_values: list[float]
+    z: list[list[float | None]]  # z[K_idx][T_idx] — IV in %
+
+
 class VolSurfaceResponse(BaseModel):
     ticker: str
     points: list[VolSurfacePoint]
+    grid: VolSurfaceGrid | None = None
     updated_at: str
     stale: bool
     data_source: str = "database"
@@ -131,7 +138,6 @@ class PriceRequest(BaseModel):
 
 class PriceSurfaceRequest(BaseModel):
     ticker: str
-    K: float = Field(..., gt=0)
     option_type: OptionType
     style: OptionStyle
     sigma: float | None = Field(default=None, gt=0)
@@ -139,6 +145,10 @@ class PriceSurfaceRequest(BaseModel):
     S: float | None = Field(default=None, gt=0)
     r: float | None = None
     q: float | None = Field(default=None, ge=0)
+    K_min_frac: float = Field(default=0.75, gt=0, le=1.0)
+    K_max_frac: float = Field(default=1.25, ge=1.0, le=2.0)
+    n_K: int = Field(default=60, ge=10, le=100)
+    n_T: int = Field(default=45, ge=10, le=80)
 
 
 class GreeksProfileRequest(BaseModel):
@@ -214,22 +224,24 @@ class PriceResponse(BaseModel):
     stale: bool = False
 
 
-class PriceSurfacePoint(BaseModel):
-    S: float
+class MarketPricePoint(BaseModel):
+    K: float
     T: float
-    price: float
+    mid_price: float
 
 
 class PriceSurfaceResponse(BaseModel):
     ticker: str
     option_type: OptionType
     style: OptionStyle
-    K: float
     S_ref: float
     sigma: float
     sigma_source: str
     sigma_fallback: bool = False
-    points: list[PriceSurfacePoint]
+    K_values: list[float]
+    T_values: list[float]
+    z: list[list[float]]  # z[T_idx][K_idx]
+    market_points: list[MarketPricePoint]
     data_source: str
     updated_at: str
     stale: bool

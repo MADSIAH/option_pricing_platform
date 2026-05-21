@@ -5,22 +5,23 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
+from scipy.interpolate import griddata
 from sqlalchemy import select
 
 from src.api.schemas import (
     GreeksProfilePoint,
     GreeksProfileRequest,
     GreeksProfileResponse,
-    PriceSurfacePoint,
+    MarketPricePoint,
     PriceSurfaceRequest,
     PriceSurfaceResponse,
     SigmaType,
-    VolSurfacePoint,
+    VolSurfaceGrid,
     VolSurfaceResponse,
 )
-from src.data.database import VolSurface, session_scope
+from src.data.database import OptionChain, VolSurface, session_scope
 from src.data.fetcher import (
     calculate_historical_vol,
     get_atm_vol,
@@ -33,12 +34,8 @@ from src.pricing.black_scholes import BlackScholes
 from src.pricing.greeks import AnalyticalGreeks
 
 STALE_AFTER = timedelta(minutes=90)
-S_MIN_MULT = 0.7
-S_MAX_MULT = 1.3
-S_STEPS = 25
 T_MIN = 0.05
 T_MAX = 1.5
-T_STEPS = 25
 
 router = APIRouter(tags=["surface"])
 
@@ -83,16 +80,61 @@ def _resolve_sigma(
     return float(hist), "historical", False, None
 
 
+def _build_vol_surface_grid(rows: list, n_grid: int = 60) -> VolSurfaceGrid | None:
+    """Interpolate scattered (T, strike) → IV points onto a regular grid."""
+    if len(rows) < 4:
+        return None
+    try:
+        strikes = np.array([float(r.strike) for r in rows])
+        ts = np.array([float(r.T) for r in rows])
+        ivs = np.array([float(r.implied_vol) * 100.0 for r in rows])
+
+        t_lin = np.linspace(ts.min(), ts.max(), n_grid)
+        k_lin = np.linspace(strikes.min(), strikes.max(), n_grid)
+        # TT[i,j] = t_lin[j], KK[i,j] = k_lin[i] → z shape (n_K, n_T)
+        TT, KK = np.meshgrid(t_lin, k_lin)
+
+        pts = np.column_stack([ts, strikes])
+        z_cubic = griddata(pts, ivs, (TT, KK), method="cubic", rescale=True)
+        z_linear = griddata(pts, ivs, (TT, KK), method="linear", rescale=True)
+        z = np.where(np.isnan(z_cubic), z_linear, z_cubic)
+        z = np.clip(z, 1.0, 150.0)
+
+        return VolSurfaceGrid(
+            T_values=t_lin.tolist(),
+            K_values=k_lin.tolist(),
+            z=[[None if np.isnan(v) else float(v) for v in row] for row in z.tolist()],
+        )
+    except Exception:
+        return None
+
+
 @router.get("/vol_surface/{ticker}", response_model=VolSurfaceResponse)
-def get_vol_surface(ticker: str) -> VolSurfaceResponse | JSONResponse:
+def get_vol_surface(
+    ticker: str,
+    option_type: str = Query(default="call"),
+) -> VolSurfaceResponse | JSONResponse:
     norm_ticker = ticker.strip().upper()
+    opt = option_type.lower().strip()
     try:
         with session_scope() as session:
-            rows = session.scalars(
-                select(VolSurface)
-                .where(VolSurface.ticker == norm_ticker)
-                .order_by(VolSurface.expiry.asc(), VolSurface.strike.asc())
-            ).all()
+            if opt == "put":
+                rows = session.scalars(
+                    select(OptionChain).where(
+                        OptionChain.ticker == norm_ticker,
+                        OptionChain.option_type == "put",
+                        OptionChain.T > (30 / 365),
+                        OptionChain.implied_vol > 0.01,
+                        OptionChain.implied_vol <= 2.0,
+                        OptionChain.bid > 0,
+                    ).order_by(OptionChain.expiry.asc(), OptionChain.strike.asc())
+                ).all()
+            else:
+                rows = session.scalars(
+                    select(VolSurface)
+                    .where(VolSurface.ticker == norm_ticker)
+                    .order_by(VolSurface.expiry.asc(), VolSurface.strike.asc())
+                ).all()
 
         if not rows:
             return JSONResponse(
@@ -102,17 +144,15 @@ def get_vol_surface(ticker: str) -> VolSurfaceResponse | JSONResponse:
 
         updated_at = min(str(row.fetched_at) for row in rows)
         points = [
-            VolSurfacePoint(
-                expiry=str(row.expiry),
-                T=float(row.T),
-                strike=float(row.strike),
-                implied_vol=float(row.implied_vol),
-            )
-            for row in rows
+            {"expiry": str(r.expiry), "T": float(r.T), "strike": float(r.strike), "implied_vol": float(r.implied_vol)}
+            for r in rows
         ]
+        grid = _build_vol_surface_grid(rows)
+
         return VolSurfaceResponse(
             ticker=norm_ticker,
             points=points,
+            grid=grid,
             updated_at=updated_at,
             stale=_is_stale(updated_at),
             data_source="database",
@@ -123,6 +163,10 @@ def get_vol_surface(ticker: str) -> VolSurfaceResponse | JSONResponse:
 
 @router.post("/price_surface", response_model=PriceSurfaceResponse)
 def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONResponse:
+    """
+    Compute option price surface over a K × T grid (varying strike, fixed spot).
+    Mirrors the notebook: x=K, y=T, z=price, with real market mid-prices overlaid.
+    """
     ticker = payload.ticker.strip().upper()
     try:
         live = get_latest_live_price(ticker)
@@ -150,22 +194,52 @@ def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONRe
 
         model = BlackScholes() if payload.style.value == "european" else BaroneAdesiWhaley()
 
-        s_values = np.linspace(S_MIN_MULT * S_ref, S_MAX_MULT * S_ref, S_STEPS)
-        t_values = np.linspace(T_MIN, T_MAX, T_STEPS)
-        points: list[PriceSurfacePoint] = []
-        for T in t_values:
-            for S in s_values:
-                params = OptionParams(
-                    S=float(S),
-                    K=float(payload.K),
-                    T=float(T),
-                    r=r,
-                    sigma=sigma,
-                    option_type=payload.option_type.value,
-                    q=q,
-                )
-                price = float(model.price(params).price)
-                points.append(PriceSurfacePoint(S=float(S), T=float(T), price=price))
+        K_min = S_ref * payload.K_min_frac
+        K_max = S_ref * payload.K_max_frac
+        K_range = np.linspace(K_min, K_max, payload.n_K)
+        T_range = np.linspace(T_MIN, T_MAX, payload.n_T)
+
+        # z[T_idx][K_idx] = price — matches Plotly surface(x=K, y=T, z=z)
+        z: list[list[float]] = []
+        for T_val in T_range:
+            row = []
+            for K_val in K_range:
+                try:
+                    params = OptionParams(
+                        S=S_ref,
+                        K=float(K_val),
+                        T=float(T_val),
+                        r=r,
+                        sigma=sigma,
+                        option_type=payload.option_type.value,
+                        q=q,
+                    )
+                    row.append(float(model.price(params).price))
+                except Exception:
+                    row.append(float("nan"))
+            z.append(row)
+
+        # Market mid-prices overlay from option_chain table
+        market_points: list[MarketPricePoint] = []
+        try:
+            with session_scope() as session:
+                chain_rows = session.scalars(
+                    select(OptionChain).where(
+                        OptionChain.ticker == ticker,
+                        OptionChain.option_type == payload.option_type.value,
+                        OptionChain.T >= T_MIN,
+                        OptionChain.T <= T_MAX,
+                        OptionChain.strike >= K_min,
+                        OptionChain.strike <= K_max,
+                    )
+                ).all()
+            market_points = [
+                MarketPricePoint(K=float(cr.strike), T=float(cr.T), mid_price=float(cr.mid_price))
+                for cr in chain_rows
+                if float(cr.mid_price) > 0
+            ]
+        except Exception:
+            pass
 
         timestamps = [str(live["updated_at"])]
         if rate_updated_at is not None:
@@ -178,12 +252,14 @@ def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONRe
             ticker=ticker,
             option_type=payload.option_type,
             style=payload.style,
-            K=float(payload.K),
             S_ref=S_ref,
             sigma=sigma,
             sigma_source=sigma_source,
             sigma_fallback=sigma_fallback,
-            points=points,
+            K_values=K_range.tolist(),
+            T_values=T_range.tolist(),
+            z=z,
+            market_points=market_points,
             data_source="database",
             updated_at=updated_at,
             stale=_is_stale(updated_at),
@@ -232,7 +308,7 @@ def greeks_profile(payload: GreeksProfileRequest) -> GreeksProfileResponse | JSO
             data_source = "database"
         else:
             ticker = None
-            S = float(payload.S)  # validated at schema level
+            S = float(payload.S)
             r = float(payload.r)
             q = float(payload.q)
             sigma = float(payload.sigma)
