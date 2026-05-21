@@ -521,11 +521,12 @@ def get_latest_risk_free_rate() -> dict[str, Any] | None:
 
 def get_atm_vol(ticker: str) -> dict[str, Any] | None:
     """
-    Return ATM implied vol from nearest expiry for ticker, or None if unavailable.
+    Return ATM implied vol from the expiry closest to 30 days (T ≈ 30/365).
 
-    ATM is selected by taking the nearest expiry (minimum T), then the strike
-    closest to the latest spot price from live_price.
+    ATM is selected by finding the expiry with T nearest to 30/365, then the
+    strike closest to the latest spot price from live_price.
     """
+    _TARGET_T = 30 / 365
     ticker = _normalize_ticker(ticker)
     live = get_latest_live_price(ticker)
     if live is None:
@@ -534,7 +535,10 @@ def get_atm_vol(ticker: str) -> dict[str, Any] | None:
 
     with session_scope() as session:
         nearest_t = session.scalar(
-            select(func.min(VolSurface.T)).where(VolSurface.ticker == ticker)
+            select(VolSurface.T)
+            .where(VolSurface.ticker == ticker)
+            .order_by(func.abs(VolSurface.T - _TARGET_T))
+            .limit(1)
         )
         if nearest_t is None:
             return None

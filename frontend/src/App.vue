@@ -7,10 +7,14 @@ import InputPanel from './components/InputPanel.vue'
 import PriceDisplay from './components/PriceDisplay.vue'
 import GreeksGrid from './components/GreeksGrid.vue'
 import SensitivityChart from './components/SensitivityChart.vue'
+import VolSurface from './components/VolSurface.vue'
+import PriceSurface from './components/PriceSurface.vue'
 
 const ticker = ref(null)
 const method = ref('black_scholes')
 const optionStyle = ref('european')
+const sigmaType = ref('implied')
+const view = ref('pricing')
 
 const inputs = ref({ S: 0, K: 0, T: 0, r: 0, sigma: 0, q: 0 })
 
@@ -113,7 +117,24 @@ watch([inputs, method, optionStyle], () => {
     <NavBar :r="inputs.r" :sigma="inputs.sigma" :ticker="ticker" :theme="theme" @toggle-theme="toggleTheme" />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+      <!-- Tab navigation -->
+      <div class="flex gap-1 mb-6 border-b border-slate-800">
+        <button
+          v-for="tab in [{ key: 'pricing', label: 'Pricing & Greeks' }, { key: 'surfaces', label: 'Surfaces' }]"
+          :key="tab.key"
+          @click="view = tab.key"
+          :class="[
+            'px-4 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px',
+            view === tab.key
+              ? 'border-emerald-500 text-emerald-400'
+              : 'border-transparent text-slate-500 hover:text-slate-300'
+          ]"
+        >{{ tab.label }}</button>
+      </div>
+
+      <!-- Pricing & Greeks view -->
+      <div v-if="view === 'pricing'" class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
         <!-- Left: parameter inputs -->
         <div class="lg:col-span-2">
@@ -122,6 +143,7 @@ watch([inputs, method, optionStyle], () => {
             v-model:ticker="ticker"
             v-model:method="method"
             v-model:optionStyle="optionStyle"
+            v-model:sigmaType="sigmaType"
           />
         </div>
 
@@ -138,6 +160,19 @@ watch([inputs, method, optionStyle], () => {
         </div>
 
       </div>
+
+      <!-- Surfaces view -->
+      <div v-else class="flex flex-col gap-6">
+        <VolSurface :ticker="ticker" :theme="theme" />
+        <PriceSurface
+          :ticker="ticker"
+          :inputs="inputs"
+          :option-style="optionStyle"
+          :sigma-type="sigmaType"
+          :theme="theme"
+        />
+      </div>
+
     </main>
 
     <footer class="mt-12 border-t border-slate-800 py-6 text-center text-xs text-slate-600">
