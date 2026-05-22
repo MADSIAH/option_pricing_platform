@@ -213,7 +213,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
         </div>
         <div class="relative">
           <span class="input-prefix">$</span>
-          <input type="number" :value="modelValue.S" @input="update('S', $event.target.value)"
+          <input type="number" :value="modelValue.S" @input="update('S', $event.target.value)" @wheel="$event.target.blur()"
             class="input-field pl-7" min="0.01" step="1" placeholder="150.00" />
         </div>
       </div>
@@ -222,7 +222,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
         <label class="text-xs text-slate-400 font-medium">Strike Price <span class="text-slate-600">(K)</span></label>
         <div class="relative">
           <span class="input-prefix">$</span>
-          <input type="number" :value="modelValue.K" @input="update('K', $event.target.value)"
+          <input type="number" :value="modelValue.K" @input="update('K', $event.target.value)" @wheel="$event.target.blur()"
             class="input-field pl-7" min="0.01" step="1" placeholder="155.00" />
         </div>
       </div>
@@ -230,7 +230,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
       <div class="space-y-1.5">
         <label class="text-xs text-slate-400 font-medium">Time to Maturity <span class="text-slate-600">(T)</span></label>
         <div class="relative">
-          <input type="number" :value="modelValue.T" @input="update('T', $event.target.value)"
+          <input type="number" :value="modelValue.T" @input="update('T', $event.target.value)" @wheel="$event.target.blur()"
             class="input-field pr-14" min="1" step="1" placeholder="90" />
           <span class="input-suffix">days</span>
         </div>
@@ -253,7 +253,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
       <div class="space-y-1.5">
         <label class="text-xs text-slate-400 font-medium">Risk-Free Rate <span class="text-slate-600">(r)</span></label>
         <div class="relative">
-          <input type="number" :value="modelValue.r" @input="update('r', $event.target.value)"
+          <input type="number" :value="modelValue.r" @input="update('r', $event.target.value)" @wheel="$event.target.blur()"
             class="input-field pr-8" step="0.01" placeholder="4.50" />
           <span class="input-suffix">%</span>
         </div>
@@ -278,7 +278,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
           </div>
         </div>
         <div class="relative">
-          <input type="number" :value="modelValue.sigma" @input="update('sigma', $event.target.value)"
+          <input type="number" :value="modelValue.sigma" @input="update('sigma', $event.target.value)" @wheel="$event.target.blur()"
             class="input-field pr-8" min="0.1" step="0.1" placeholder="20.0" />
           <span class="input-suffix">%</span>
         </div>
@@ -300,7 +300,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
       <div v-if="showAdvanced" class="mt-4 space-y-1.5">
         <label class="text-xs text-slate-400 font-medium">Dividend Yield <span class="text-slate-600">(q)</span></label>
         <div class="relative">
-          <input type="number" :value="modelValue.q" @input="update('q', $event.target.value)"
+          <input type="number" :value="modelValue.q" @input="update('q', $event.target.value)" @wheel="$event.target.blur()"
             class="input-field pr-8" min="0" step="0.1" placeholder="0.0" />
           <span class="input-suffix">%</span>
         </div>
