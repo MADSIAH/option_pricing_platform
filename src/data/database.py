@@ -119,7 +119,13 @@ def get_engine():
     global _ENGINE
     if _ENGINE is None:
         db_path = _resolve_db_path()
-        _ENGINE = create_engine(f"sqlite:///{db_path.as_posix()}", future=True)
+        _ENGINE = create_engine(
+            f"sqlite:///{db_path.as_posix()}",
+            future=True,
+            connect_args={"check_same_thread": False},
+            pool_pre_ping=True,
+            pool_recycle=3600,
+        )
     return _ENGINE
 
 
@@ -154,8 +160,14 @@ def init_db() -> None:
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
 
-    # SQLite create_all() does not ALTER existing tables; add new columns if needed.
     with engine.begin() as conn:
+        # WAL mode allows concurrent readers + one writer without blocking.
+        # busy_timeout gives readers up to 5 s to wait on a write lock instead of
+        # immediately raising OperationalError("database is locked").
+        conn.execute(text("PRAGMA journal_mode=WAL"))
+        conn.execute(text("PRAGMA busy_timeout=5000"))
+
+        # SQLite create_all() does not ALTER existing tables; add new columns if needed.
         table_info = conn.execute(text("PRAGMA table_info(vol_surface)")).fetchall()
         existing_cols = {str(row[1]) for row in table_info}
         if "T" not in existing_cols:
