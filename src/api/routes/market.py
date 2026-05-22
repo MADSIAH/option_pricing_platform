@@ -64,7 +64,7 @@ def get_market(ticker: str) -> MarketResponse | JSONResponse:
         atm = get_atm_vol(norm_ticker)
         atm_iv = None if atm is None else float(atm["implied_vol"])
 
-        updated_candidates = [str(live["updated_at"]), str(rate["updated_at"])]
+        updated_candidates = [str(live["updated_at"])]
         if atm is not None:
             updated_candidates.append(str(atm["fetched_at"]))
 
