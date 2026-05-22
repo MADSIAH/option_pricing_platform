@@ -220,7 +220,10 @@ onMounted(() => buildChart(props.chartData))
 watch(
   () => [props.chartData, props.currentS, props.theme],
   ([newData]) => {
-    if (!newData) return
+    if (!newData) {
+      if (chart) { chart.destroy(); chart = null }
+      return
+    }
     if (!chart) buildChart(newData)
     else updateChart(newData)
   },
