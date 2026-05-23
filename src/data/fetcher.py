@@ -20,11 +20,16 @@ from .database import DailyPrice, LivePrice, OptionChain, RiskFreeRate, VolSurfa
 
 ET = pytz.timezone("America/New_York")
 TRADING_DAYS_PER_YEAR = 252
+MIN_VOL_ROWS = 30  # minimum trading days needed for a meaningful vol estimate
 FRED_DTB3_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTB3"
 MIN_OPTION_T_YEARS = 30.0 / 365.0
 MAX_REASONABLE_IV = 2.0
 
 logger = logging.getLogger(__name__)
+
+
+class InsufficientDataError(Exception):
+    """Raised when a computation requires more historical data than is available."""
 
 
 def _normalize_ticker(ticker: str) -> str:
@@ -463,10 +468,12 @@ def fetch_and_store_option_data(ticker: str) -> bool:
 
 def calculate_historical_vol(ticker: str) -> float:
     """
-    Compute annualized historical volatility from last 252 daily prices.
+    Compute annualized historical volatility from up to 252 daily prices.
+
+    Uses however many rows are available up to TRADING_DAYS_PER_YEAR.
 
     Raises:
-        ValueError: if fewer than 252 rows are available.
+        ValueError: if fewer than MIN_VOL_ROWS rows are available.
     """
     ticker = _normalize_ticker(ticker)
 
@@ -479,10 +486,10 @@ def calculate_historical_vol(ticker: str) -> float:
         ).all()
 
     prices_desc = [float(row[0]) for row in rows]
-    if len(prices_desc) < TRADING_DAYS_PER_YEAR:
-        raise ValueError(
-            f"Not enough daily price rows for {ticker}: "
-            f"{len(prices_desc)} found, {TRADING_DAYS_PER_YEAR} required."
+    if len(prices_desc) < MIN_VOL_ROWS:
+        raise InsufficientDataError(
+            f"Not enough data points for {ticker}: "
+            f"{len(prices_desc)} found, {MIN_VOL_ROWS} required."
         )
 
     prices = pd.Series(list(reversed(prices_desc)), dtype=float)
@@ -540,20 +547,55 @@ def get_atm_vol(ticker: str) -> dict[str, Any] | None:
             .order_by(func.abs(VolSurface.T - _TARGET_T))
             .limit(1)
         )
-        if nearest_t is None:
+
+        if nearest_t is not None:
+            rows = session.scalars(
+                select(VolSurface).where(
+                    VolSurface.ticker == ticker,
+                    VolSurface.T == float(nearest_t),
+                )
+            ).all()
+            if rows:
+                atm_row = min(rows, key=lambda row: abs(float(row.strike) - spot))
+                return {
+                    "ticker": ticker,
+                    "expiry": str(atm_row.expiry),
+                    "strike": float(atm_row.strike),
+                    "T": float(atm_row.T),
+                    "implied_vol": float(atm_row.implied_vol),
+                    "fetched_at": str(atm_row.fetched_at),
+                }
+
+        # vol_surface empty for this ticker — fall back to option_chain calls
+        nearest_t_chain = session.scalar(
+            select(OptionChain.T)
+            .where(
+                OptionChain.ticker == ticker,
+                OptionChain.option_type == "call",
+                OptionChain.implied_vol > 0.01,
+                OptionChain.implied_vol <= 2.0,
+                OptionChain.bid > 0,
+            )
+            .order_by(func.abs(OptionChain.T - _TARGET_T))
+            .limit(1)
+        )
+        if nearest_t_chain is None:
             return None
 
-        rows = session.scalars(
-            select(VolSurface).where(
-                VolSurface.ticker == ticker,
-                VolSurface.T == float(nearest_t),
+        chain_rows = session.scalars(
+            select(OptionChain).where(
+                OptionChain.ticker == ticker,
+                OptionChain.option_type == "call",
+                OptionChain.T == float(nearest_t_chain),
+                OptionChain.implied_vol > 0.01,
+                OptionChain.implied_vol <= 2.0,
+                OptionChain.bid > 0,
             )
         ).all()
-
-        if not rows:
+        if not chain_rows:
             return None
 
-        atm_row = min(rows, key=lambda row: abs(float(row.strike) - spot))
+        atm_row = min(chain_rows, key=lambda row: abs(float(row.strike) - spot))
         return {
             "ticker": ticker,
             "expiry": str(atm_row.expiry),

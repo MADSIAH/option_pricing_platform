@@ -23,6 +23,7 @@ from src.api.schemas import (
 )
 from src.data.database import OptionChain, VolSurface, session_scope
 from src.data.fetcher import (
+    InsufficientDataError,
     calculate_historical_vol,
     get_atm_vol,
     get_latest_live_price,
@@ -34,6 +35,7 @@ from src.pricing.black_scholes import BlackScholes
 from src.pricing.greeks import AnalyticalGreeks
 
 STALE_AFTER = timedelta(minutes=90)
+STALE_RATE_AFTER = timedelta(days=7)
 T_MIN = 0.05
 T_MAX = 1.5
 
@@ -48,6 +50,10 @@ def _is_stale(updated_at: str) -> bool:
     return datetime.now(timezone.utc) - _parse_utc(updated_at) > STALE_AFTER
 
 
+def _rate_is_stale(rate: dict) -> bool:
+    return datetime.now(timezone.utc) - _parse_utc(str(rate["updated_at"])) > STALE_RATE_AFTER
+
+
 def _error(status_code: int, message: str, detail: str | None = None) -> JSONResponse:
     payload: dict[str, str] = {"error": message}
     if detail is not None:
@@ -60,6 +66,7 @@ def _resolve_sigma(
     sigma: float | None,
     sigma_type: SigmaType,
 ) -> tuple[float, str, bool, str | None]:
+    """Return (sigma, source, fallback, fetched_at). No cross-type fallbacks."""
     if sigma is not None:
         return float(sigma), "user_provided", False, None
 
@@ -67,17 +74,18 @@ def _resolve_sigma(
         atm = get_atm_vol(ticker)
         if atm is not None:
             return float(atm["implied_vol"]), "implied", False, str(atm["fetched_at"])
-        try:
-            hist = calculate_historical_vol(ticker)
-            return float(hist), "historical", True, None
-        except ValueError as exc:
-            raise ValueError("Implied vol unavailable and no fallback sigma provided") from exc
+        raise InsufficientDataError(
+            f"ATM implied vol unavailable for {ticker}: vol surface has not been computed yet"
+        )
 
+    # sigma_type == SigmaType.historical
     try:
         hist = calculate_historical_vol(ticker)
-    except ValueError as exc:
-        raise ValueError("No valid historical sigma available") from exc
-    return float(hist), "historical", False, None
+        return float(hist), "historical", False, None
+    except InsufficientDataError as exc:
+        raise InsufficientDataError(
+            f"Historical vol unavailable for {ticker}: {exc}"
+        ) from exc
 
 
 def _build_vol_surface_grid(rows: list, n_grid: int = 60) -> VolSurfaceGrid | None:
@@ -135,6 +143,17 @@ def get_vol_surface(
                     .where(VolSurface.ticker == norm_ticker)
                     .order_by(VolSurface.expiry.asc(), VolSurface.strike.asc())
                 ).all()
+                if not rows:
+                    rows = session.scalars(
+                        select(OptionChain).where(
+                            OptionChain.ticker == norm_ticker,
+                            OptionChain.option_type == "call",
+                            OptionChain.T > (30 / 365),
+                            OptionChain.implied_vol > 0.01,
+                            OptionChain.implied_vol <= 2.0,
+                            OptionChain.bid > 0,
+                        ).order_by(OptionChain.expiry.asc(), OptionChain.strike.asc())
+                    ).all()
 
         if not rows:
             return JSONResponse(
@@ -176,13 +195,13 @@ def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONRe
         S_ref = float(payload.S) if payload.S is not None else float(live["spot_price"])
         q = float(payload.q) if payload.q is not None else float(live["dividend_yield"])
 
-        rate_updated_at: str | None = None
+        rate_stale = False
         if payload.r is None:
             rate_row = get_latest_risk_free_rate()
             if rate_row is None:
-                return _error(503, "Market data unavailable", "Risk-free rate not available")
+                return _error(503, "Risk-free rate not available; you can provide r in the request body")
             r = float(rate_row["rate"])
-            rate_updated_at = str(rate_row["updated_at"])
+            rate_stale = _rate_is_stale(rate_row)
         else:
             r = float(payload.r)
 
@@ -242,8 +261,6 @@ def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONRe
             pass
 
         timestamps = [str(live["updated_at"])]
-        if rate_updated_at is not None:
-            timestamps.append(rate_updated_at)
         if sigma_ts is not None:
             timestamps.append(sigma_ts)
         updated_at = min(timestamps, key=_parse_utc)
@@ -262,8 +279,10 @@ def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONRe
             market_points=market_points,
             data_source="database",
             updated_at=updated_at,
-            stale=_is_stale(updated_at),
+            stale=_is_stale(updated_at) or rate_stale,
         )
+    except InsufficientDataError as exc:
+        return _error(503, f"Volatility data not available: {exc} You can provide sigma in the request body.")
     except ValueError as exc:
         return _error(422, str(exc))
     except Exception as exc:
@@ -282,13 +301,13 @@ def greeks_profile(payload: GreeksProfileRequest) -> GreeksProfileResponse | JSO
             S = float(payload.S) if payload.S is not None else float(live["spot_price"])
             q = float(payload.q) if payload.q is not None else float(live["dividend_yield"])
 
-            rate_updated_at: str | None = None
+            rate_stale = False
             if payload.r is None:
                 rate_row = get_latest_risk_free_rate()
                 if rate_row is None:
-                    return _error(503, "Market data unavailable", "Risk-free rate not available")
+                    return _error(503, "Risk-free rate not available; you can provide r in the request body")
                 r = float(rate_row["rate"])
-                rate_updated_at = str(rate_row["updated_at"])
+                rate_stale = _rate_is_stale(rate_row)
             else:
                 r = float(payload.r)
 
@@ -299,12 +318,10 @@ def greeks_profile(payload: GreeksProfileRequest) -> GreeksProfileResponse | JSO
             )
 
             ts_candidates = [str(live["updated_at"])]
-            if rate_updated_at is not None:
-                ts_candidates.append(rate_updated_at)
             if sigma_ts is not None:
                 ts_candidates.append(sigma_ts)
             updated_at = min(ts_candidates, key=_parse_utc)
-            stale = _is_stale(updated_at)
+            stale = _is_stale(updated_at) or rate_stale
             data_source = "database"
         else:
             ticker = None
@@ -362,6 +379,8 @@ def greeks_profile(payload: GreeksProfileRequest) -> GreeksProfileResponse | JSO
             updated_at=updated_at,
             stale=stale,
         )
+    except InsufficientDataError as exc:
+        return _error(503, f"Volatility data not available: {exc} You can provide sigma in the request body.")
     except ValueError as exc:
         return _error(422, str(exc))
     except Exception as exc:

@@ -50,9 +50,11 @@ class HealthResponse(BaseModel):
 class MarketResponse(BaseModel):
     ticker: str
     spot_price: float
-    historical_vol: float
+    historical_vol: float | None
+    historical_vol_warning: str | None = None
     atm_implied_vol: float | None
-    risk_free_rate: float
+    risk_free_rate: float | None
+    risk_free_rate_warning: str | None = None
     dividend_yield: float
     updated_at: str
     stale: bool
