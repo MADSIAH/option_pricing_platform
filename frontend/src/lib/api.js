@@ -11,7 +11,7 @@ export async function fetchMarket(ticker) {
 // Returns risk-free rate as a percentage (e.g. 3.60)
 export async function fetchRFR() {
   const data = await fetchMarket('AAPL')
-  return +(data.risk_free_rate * 100).toFixed(2)
+  return data.risk_free_rate != null ? +(data.risk_free_rate * 100).toFixed(2) : null
 }
 
 export async function priceOption(payload) {
@@ -31,7 +31,7 @@ export async function fetchVolSurface(ticker, optionType = 'call') {
   const res = await fetch(`${BASE}/vol_surface/${ticker}?option_type=${optionType}`)
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.reason || err.error || `Vol surface fetch failed: ${res.status}`)
+    throw new Error(err.error || `Vol surface fetch failed: ${res.status}`)
   }
   return res.json()
 }

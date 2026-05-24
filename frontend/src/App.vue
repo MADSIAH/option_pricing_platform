@@ -15,6 +15,8 @@ const method = ref('black_scholes')
 const optionStyle = ref('european')
 const sigmaType = ref('implied')
 const view = ref('pricing')
+const isStale = ref(false)
+const marketUpdatedAt = ref(null)
 
 const inputs = ref({ S: 0, K: 0, T: 0, r: 0, sigma: 0, q: 0 })
 
@@ -72,7 +74,7 @@ async function loadPrices() {
       S: inputs.value.S,
       K: inputs.value.K,
       T: inputs.value.T / 365,
-      r: inputs.value.r / 100,
+      r: inputs.value.r != null ? inputs.value.r / 100 : null,
       q: inputs.value.q / 100,
       sigma: inputs.value.sigma / 100,
       style: optionStyle.value,
@@ -144,6 +146,8 @@ watch([inputs, method, optionStyle], () => {
             v-model:method="method"
             v-model:optionStyle="optionStyle"
             v-model:sigmaType="sigmaType"
+            v-model:isStale="isStale"
+            v-model:updatedAt="marketUpdatedAt"
           />
         </div>
 

@@ -8,10 +8,18 @@ const props = defineProps({
   theme:  { type: String, default: 'dark' },
 })
 
-const plotEl  = ref(null)
-const loading = ref(false)
-const error   = ref(null)
-let plotted   = false
+const plotEl    = ref(null)
+const loading   = ref(false)
+const error     = ref(null)
+const updatedAt = ref(null)
+const isStale   = ref(false)
+let plotted     = false
+
+function fmtUpdated(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.toLocaleString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+}
 
 function colors(theme) {
   return theme === 'light'
@@ -30,7 +38,7 @@ function buildLayout(theme, title) {
     scene: {
       bgcolor: c.plot,
       aspectmode: 'cube',
-      camera: { eye: { x: 1.5, y: -1.8, z: 0.8 } },
+      camera: { eye: { x: -0.8, y: 1.8, z: 0.8 } },
       xaxis: {
         title: { text: 'Time to Maturity (years)', font: { color: c.font, size: 11 } },
         tickfont: { color: c.font, size: 9 },
@@ -56,11 +64,15 @@ function buildLayout(theme, title) {
 
 async function loadAndPlot() {
   if (!props.ticker || !plotEl.value) return
-  loading.value = true
-  error.value   = null
-  plotted       = false
+  loading.value   = true
+  error.value     = null
+  updatedAt.value = null
+  isStale.value   = false
+  plotted         = false
   try {
     const data  = await fetchVolSurface(props.ticker)
+    updatedAt.value = data.updated_at ?? null
+    isStale.value   = data.stale === true
     const title = `Implied Volatility Surface — ${props.ticker}`
     const c     = colors(props.theme)
 
@@ -71,7 +83,7 @@ async function loadAndPlot() {
         x: data.grid.T_values,
         y: data.grid.K_values,
         z: data.grid.z,
-        colorscale: 'Plasma',
+        colorscale: 'Viridis',
         colorbar: {
           title: { text: 'IV (%)', font: { color: c.font, size: 11 } },
           tickfont: { color: c.font, size: 9 },
@@ -90,7 +102,7 @@ async function loadAndPlot() {
         marker: {
           size: 5,
           color: data.points.map(p => p.implied_vol * 100),
-          colorscale: 'Plasma',
+          colorscale: 'Viridis',
           showscale: true,
           colorbar: {
             title: { text: 'IV (%)', font: { color: c.font, size: 11 } },
@@ -128,6 +140,9 @@ onUnmounted(() => { if (plotEl.value) Plotly.purge(plotEl.value) })
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
         Loading…
       </div>
+      <span v-else-if="updatedAt" :class="['text-[10px] font-mono', isStale ? 'text-amber-400' : 'text-emerald-500']">
+        last updated: {{ fmtUpdated(updatedAt) }}
+      </span>
     </div>
 
     <div v-if="!ticker" class="flex items-center justify-center h-64 text-slate-600 text-sm">

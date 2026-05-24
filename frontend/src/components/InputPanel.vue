@@ -8,11 +8,15 @@ const props = defineProps({
   method:     { type: String,  default: 'black_scholes' },
   optionStyle:{ type: String,  default: 'european' },
   sigmaType:  { type: String,  default: 'implied' },
+  isStale:    { type: Boolean, default: false },
+  updatedAt:  { type: String,  default: null },
 })
-const emit = defineEmits(['update:modelValue', 'update:ticker', 'update:method', 'update:optionStyle', 'update:sigmaType'])
+const emit = defineEmits(['update:modelValue', 'update:ticker', 'update:method', 'update:optionStyle', 'update:sigmaType', 'update:isStale', 'update:updatedAt'])
 
 const lastHistoricalVol = ref(null)
 const lastImpliedVol = ref(null)
+const historicalVolWarning = ref(null)
+const riskFreeRateWarning = ref(null)
 
 function sigmaForType(type) {
   if (type === 'implied') return lastImpliedVol.value ?? lastHistoricalVol.value ?? props.modelValue.sigma
@@ -28,13 +32,22 @@ watch(() => props.sigmaType, (type) => {
 const showAdvanced = ref(true)
 const loading = ref(false)
 const error = ref(null)
-const updatedAt = ref(null)
 
 function fmtUpdated(iso) {
   if (!iso) return null
   const d = new Date(iso)
-  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
 }
+
+const fmtStaleDate = computed(() => {
+  if (!props.updatedAt) return null
+  const d = new Date(props.updatedAt)
+  const day = d.getDate()
+  const month = d.toLocaleString('en', { month: 'short' })
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `Last updated: ${day} ${month} ${hh}:${mm}`
+})
 
 const EUROPEAN_METHODS = [
   { value: 'black_scholes', label: 'Black-Scholes' },
@@ -72,14 +85,17 @@ async function selectTicker(t) {
   error.value = null
   try {
     const data = await fetchMarket(t)
-    lastHistoricalVol.value = +(data.historical_vol * 100).toFixed(2)
+    lastHistoricalVol.value = data.historical_vol != null ? +(data.historical_vol * 100).toFixed(2) : null
     lastImpliedVol.value = data.atm_implied_vol != null ? +(data.atm_implied_vol * 100).toFixed(2) : null
     const sigma = sigmaForType(props.sigmaType)
-    updatedAt.value = data.updated_at ?? null
+    emit('update:updatedAt', data.updated_at ?? null)
+    historicalVolWarning.value = data.historical_vol_warning ?? null
+    riskFreeRateWarning.value = data.risk_free_rate_warning ?? null
+    emit('update:isStale', data.stale === true)
     emit('update:modelValue', {
       ...props.modelValue,
       S: +data.spot_price.toFixed(2),
-      r: +(data.risk_free_rate * 100).toFixed(2),
+      r: data.risk_free_rate != null ? +(data.risk_free_rate * 100).toFixed(2) : null,
       sigma,
       q: +(data.dividend_yield).toFixed(2),
     })
@@ -95,7 +111,10 @@ async function selectManual() {
   emit('update:ticker', null)
   loading.value = true
   error.value = null
-  updatedAt.value = null
+  emit('update:updatedAt', null)
+  historicalVolWarning.value = null
+  riskFreeRateWarning.value = null
+  emit('update:isStale', false)
   let r = 0
   try {
     r = await fetchRFR()
@@ -209,7 +228,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
       <div class="space-y-1.5">
         <div class="flex items-baseline justify-between">
           <label class="text-xs text-slate-400 font-medium">Underlying Price <span class="text-slate-600">(S)</span></label>
-          <span v-if="updatedAt" class="text-[10px] text-emerald-500 font-mono">last updated: {{ fmtUpdated(updatedAt) }}</span>
+          <span v-if="updatedAt" :class="['text-[10px] font-mono', isStale ? 'text-amber-400' : 'text-emerald-500']">last updated: {{ fmtUpdated(updatedAt) }}</span>
         </div>
         <div class="relative">
           <span class="input-prefix">$</span>
@@ -244,9 +263,13 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
     <div class="space-y-4">
       <div class="flex items-center gap-2">
         <p class="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">Market Data</p>
-        <span class="flex items-center gap-1 text-[10px] text-emerald-500">
+        <span v-if="!isStale" class="flex items-center gap-1 text-[10px] text-emerald-500">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
           {{ ticker ? 'live · editable' : 'editable' }}
+        </span>
+        <span v-if="isStale && fmtStaleDate" class="flex items-center gap-1 text-[10px] text-amber-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          {{ fmtStaleDate }}
         </span>
       </div>
 
@@ -258,6 +281,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
           <span class="input-suffix">%</span>
         </div>
         <p class="text-[11px] text-slate-600">US 3-Month T-Bill proxy</p>
+        <p v-if="riskFreeRateWarning" class="text-[11px] text-amber-400">{{ riskFreeRateWarning }}</p>
       </div>
 
       <div class="space-y-1.5">
@@ -283,6 +307,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
           <span class="input-suffix">%</span>
         </div>
         <p class="text-[11px] text-slate-600">Annualized {{ sigmaType === 'implied' ? 'implied' : 'historical' }} vol</p>
+        <p v-if="historicalVolWarning" class="text-[11px] text-amber-400">{{ historicalVolWarning }}</p>
       </div>
     </div>
 
