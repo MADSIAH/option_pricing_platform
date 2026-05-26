@@ -92,7 +92,7 @@ async function loadAndPlot() {
       x: xVals,
       y: data.T_values,
       z: data.z,
-      colorscale: optionType.value === 'call' ? 'Viridis' : 'Plasma',
+      colorscale: 'Viridis',
       opacity: 0.82,
       colorbar: {
         title: { text: 'Price ($)', font: { color: c.font } },
@@ -114,7 +114,7 @@ async function loadAndPlot() {
         x: data.market_points.map(p => 2 * data.S_ref - p.K),
         y: data.market_points.map(p => p.T),
         z: data.market_points.map(p => p.mid_price),
-        marker: { size: 2.5, color: 'black', opacity: 0.8 },
+        marker: { size: 1.5, color: '#00bcd4', opacity: 0.6 },
         hovertemplate: 'K: %{x:.1f}<br>T: %{y:.3f}y<br>Mid: $%{z:.4f}<extra>Market</extra>',
       })
     }

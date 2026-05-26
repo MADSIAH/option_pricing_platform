@@ -17,6 +17,7 @@ from src.api.schemas import (
     SigmaType,
 )
 from src.data.fetcher import (
+    InsufficientDataError,
     calculate_historical_vol,
     get_atm_vol,
     get_latest_live_price,
@@ -31,6 +32,7 @@ from src.pricing.longstaff_schwartz import LongstaffSchwartz
 from src.pricing.monte_carlo import MonteCarlo
 
 STALE_AFTER = timedelta(minutes=90)
+STALE_RATE_AFTER = timedelta(days=7)
 
 router = APIRouter(tags=["pricing"])
 
@@ -41,6 +43,10 @@ def _parse_utc(ts: str) -> datetime:
 
 def _is_stale(updated_at: str) -> bool:
     return datetime.now(timezone.utc) - _parse_utc(updated_at) > STALE_AFTER
+
+
+def _rate_is_stale(rate: dict) -> bool:
+    return datetime.now(timezone.utc) - _parse_utc(str(rate["updated_at"])) > STALE_RATE_AFTER
 
 
 def _error(status_code: int, message: str, detail: str | None = None) -> JSONResponse:
@@ -56,6 +62,7 @@ def _resolve_sigma(
     sigma: float | None,
     sigma_type: SigmaType,
 ) -> tuple[float, str, bool, str | None]:
+    """Return (sigma, source, fallback, fetched_at)."""
     if sigma is not None:
         return float(sigma), "user_provided", False, None
 
@@ -66,17 +73,18 @@ def _resolve_sigma(
         atm = get_atm_vol(ticker)
         if atm is not None:
             return float(atm["implied_vol"]), "implied", False, str(atm["fetched_at"])
-        try:
-            hist = calculate_historical_vol(ticker)
-            return float(hist), "historical", True, None
-        except ValueError as exc:
-            raise ValueError("Implied vol unavailable and no fallback sigma provided") from exc
+        raise InsufficientDataError(
+            f"ATM implied vol unavailable for {ticker}: vol surface has not been computed yet"
+        )
 
+    # sigma_type == SigmaType.historical
     try:
         hist = calculate_historical_vol(ticker)
         return float(hist), "historical", False, None
-    except ValueError as exc:
-        raise ValueError("No valid historical sigma available") from exc
+    except InsufficientDataError as exc:
+        raise InsufficientDataError(
+            f"Historical vol unavailable for {ticker}: {exc}"
+        ) from exc
 
 
 def _validate_style_method(style: OptionStyle, method: PricingMethod) -> None:
@@ -136,13 +144,13 @@ def price_option(payload: PriceRequest) -> PriceResponse | JSONResponse:
                 S = float(payload.S) if payload.S is not None else float(live["spot_price"])
                 q = float(payload.q) if payload.q is not None else float(live["dividend_yield"])
 
-                rate_updated_at: str | None = None
+                rate_stale = False
                 if payload.r is None:
                     rate = get_latest_risk_free_rate()
                     if rate is None:
-                        return _error(503, "Market data unavailable", "Risk-free rate not available")
+                        return _error(422, "Risk-free rate not in DB; please provide r manually")
                     r = float(rate["rate"])
-                    rate_updated_at = str(rate["updated_at"])
+                    rate_stale = _rate_is_stale(rate)
                 else:
                     r = float(payload.r)
 
@@ -153,12 +161,10 @@ def price_option(payload: PriceRequest) -> PriceResponse | JSONResponse:
                 )
 
                 ts_candidates = [str(live["updated_at"])]
-                if rate_updated_at is not None:
-                    ts_candidates.append(rate_updated_at)
                 if sigma_ts is not None:
                     ts_candidates.append(sigma_ts)
                 updated_at = min(ts_candidates, key=_parse_utc)
-                stale = _is_stale(updated_at)
+                stale = _is_stale(updated_at) or rate_stale
             else:
                 missing = [
                     name
@@ -233,6 +239,8 @@ def price_option(payload: PriceRequest) -> PriceResponse | JSONResponse:
             updated_at=updated_at,
             stale=stale,
         )
+    except InsufficientDataError as exc:
+        return _error(422, f"{exc} Please provide sigma manually.")
     except ValueError as exc:
         return _error(422, str(exc))
     except Exception as exc:

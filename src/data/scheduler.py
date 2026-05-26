@@ -114,6 +114,8 @@ def cleanup_old_rows() -> None:
         result = session.execute(delete(DailyPrice).where(DailyPrice.date < cutoff_date))
         deleted = int(result.rowcount or 0)
     logger.info("cleanup_old_rows | daily_prices deleted=%s cutoff=%s", deleted, cutoff_date)
+    if deleted > 0:
+        backfill_all_tickers()
 
 
 def add_ticker(ticker: str) -> None:

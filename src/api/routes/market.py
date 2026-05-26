@@ -17,6 +17,7 @@ from src.api.schemas import (
 )
 from src.data.database import OptionChain, session_scope
 from src.data.fetcher import (
+    InsufficientDataError,
     calculate_historical_vol,
     get_atm_vol,
     get_latest_live_price,
@@ -24,6 +25,7 @@ from src.data.fetcher import (
 )
 
 STALE_AFTER = timedelta(minutes=90)
+STALE_RATE_AFTER = timedelta(days=7)
 
 router = APIRouter(tags=["market"])
 
@@ -34,6 +36,10 @@ def _parse_utc(ts: str) -> datetime:
 
 def _is_stale(updated_at: str) -> bool:
     return datetime.now(timezone.utc) - _parse_utc(updated_at) > STALE_AFTER
+
+
+def _rate_is_stale(rate: dict) -> bool:
+    return datetime.now(timezone.utc) - _parse_utc(str(rate["updated_at"])) > STALE_RATE_AFTER
 
 
 def _error(status_code: int, message: str, detail: str | None = None) -> JSONResponse:
@@ -54,12 +60,20 @@ def get_market(ticker: str) -> MarketResponse | JSONResponse:
 
         rate = get_latest_risk_free_rate()
         if rate is None:
-            return _error(503, "Market data unavailable", "Risk-free rate not available")
+            risk_free_rate: float | None = None
+            risk_free_rate_warning: str | None = "Risk-free rate not in DB; please enter manually"
+            rate_stale = True
+        else:
+            risk_free_rate = float(rate["rate"])
+            risk_free_rate_warning = None
+            rate_stale = _rate_is_stale(rate)
 
+        historical_vol_warning: str | None = None
         try:
-            historical_vol = calculate_historical_vol(norm_ticker)
-        except ValueError:
-            return _error(404, "Ticker not found")
+            historical_vol: float | None = calculate_historical_vol(norm_ticker)
+        except InsufficientDataError as exc:
+            historical_vol = None
+            historical_vol_warning = str(exc)
 
         atm = get_atm_vol(norm_ticker)
         atm_iv = None if atm is None else float(atm["implied_vol"])
@@ -71,15 +85,19 @@ def get_market(ticker: str) -> MarketResponse | JSONResponse:
         updated_dt = min(_parse_utc(ts) for ts in updated_candidates)
         updated_at = updated_dt.isoformat()
 
+        stale = _is_stale(updated_at) or rate_stale or historical_vol is None
+
         return MarketResponse(
             ticker=norm_ticker,
             spot_price=float(live["spot_price"]),
-            historical_vol=float(historical_vol),
+            historical_vol=historical_vol,
+            historical_vol_warning=historical_vol_warning,
             atm_implied_vol=atm_iv,
-            risk_free_rate=float(rate["rate"]),
+            risk_free_rate=risk_free_rate,
+            risk_free_rate_warning=risk_free_rate_warning,
             dividend_yield=float(live["dividend_yield"]),
             updated_at=updated_at,
-            stale=_is_stale(updated_at),
+            stale=stale,
             data_source="database",
         )
     except Exception as exc:
