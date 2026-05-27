@@ -10,6 +10,7 @@ import SensitivityChart from './components/SensitivityChart.vue'
 import VolSurface from './components/VolSurface.vue'
 import PriceSurface from './components/PriceSurface.vue'
 import ChatPanel from './components/ChatPanel.vue'
+import ExplainPanel from './components/ExplainPanel.vue'
 
 const ticker = ref(null)
 const method = ref('black_scholes')
@@ -165,6 +166,7 @@ watch([inputs, method, optionStyle], () => {
             :error="priceError"
           />
           <GreeksGrid :result="result" />
+          <ExplainPanel :result="result" :inputs="inputs" />
           <SensitivityChart v-if="optionStyle === 'european'" :chart-data="chartData" :current-s="inputs.S" :current-k="inputs.K" :theme="theme" />
         </div>
       </div>

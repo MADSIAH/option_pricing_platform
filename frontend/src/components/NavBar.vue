@@ -52,18 +52,18 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
           <button
             @click="$emit('toggle-chat')"
             :class="[
-              'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors',
+              'flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors',
               chatOpen
-                ? 'bg-violet-900/40 border-violet-600 text-violet-300'
-                : 'border-slate-700 bg-slate-800 text-slate-400 hover:border-violet-600 hover:text-violet-300'
+                ? 'bg-violet-700 border-violet-500 text-white shadow-lg shadow-violet-900/40'
+                : 'border-violet-600 bg-violet-900/30 text-violet-300 hover:bg-violet-700 hover:border-violet-500 hover:text-white'
             ]"
             type="button"
             aria-label="Toggle AI chat panel"
           >
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
             </svg>
-            <span class="hidden sm:inline">Ask AI</span>
+            Ask AI
           </button>
 
           <!-- Theme toggle -->
