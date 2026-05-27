@@ -1,5 +1,8 @@
 <script setup>
-defineProps({
+import { ref } from 'vue'
+import { explainResult } from '../lib/api.js'
+
+const props = defineProps({
   result:  { type: Object,  default: null },
   inputs:  { type: Object,  required: true },
   loading: { type: Boolean, default: false },
@@ -12,6 +15,56 @@ const METHOD_LABELS = {
   binomial_tree:      'Binomial Tree',
   baw:                'BAW',
   longstaff_schwartz: 'Longstaff-Schwartz',
+}
+
+const LEVELS = [
+  { key: 'beginner',        label: 'Beginner' },
+  { key: 'finance_student', label: 'Student' },
+  { key: 'professional',    label: 'Professional' },
+]
+
+const explainLevel    = ref('finance_student')
+const explanation     = ref(null)
+const explainLoading  = ref(false)
+const explainError    = ref(null)
+
+async function runExplain() {
+  if (!props.result) return
+  explainLoading.value = true
+  explainError.value   = null
+  explanation.value    = null
+  try {
+    const payload = {
+      user_level:  explainLevel.value,
+      option_type: 'call',
+      style:       props.result.style,
+      method:      props.result.method,
+      S:           props.inputs.S,
+      K:           props.inputs.K,
+      T:           props.inputs.T / 365,
+      r:           props.inputs.r / 100,
+      sigma:       props.inputs.sigma / 100,
+      q:           props.inputs.q / 100,
+      prices: {
+        [props.result.method]: {
+          price: props.result.call.price,
+          greeks: {
+            delta: props.result.call.delta,
+            gamma: props.result.call.gamma,
+            vega:  props.result.call.vega,
+            theta: props.result.call.theta,
+            rho:   props.result.call.rho,
+          },
+        },
+      },
+    }
+    const data = await explainResult(payload)
+    explanation.value = data.explanation
+  } catch (e) {
+    explainError.value = e.message
+  } finally {
+    explainLoading.value = false
+  }
 }
 
 function fmt6(val) {
@@ -148,6 +201,42 @@ function moneynessBadge(S, K, isCall) {
         <div class="hint font-mono">
           Put-Call Parity: C − P = Se^(−qT) − Ke^(−rT)
         </div>
+      </div>
+
+      <!-- ── Explain section ──────────────────────────────────────────── -->
+      <div class="mt-4 pt-4 border-t border-slate-800">
+
+        <!-- Level pills + Explain button -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Explain as:</span>
+          <button
+            v-for="lvl in LEVELS"
+            :key="lvl.key"
+            @click="explainLevel = lvl.key"
+            :class="[
+              'text-[10px] font-semibold rounded-full px-2.5 py-0.5 border transition-colors',
+              explainLevel === lvl.key
+                ? 'bg-violet-900/40 border-violet-600 text-violet-300'
+                : 'border-slate-700 text-slate-500 hover:text-slate-300'
+            ]"
+          >{{ lvl.label }}</button>
+          <button
+            @click="runExplain"
+            :disabled="explainLoading"
+            class="ml-auto text-[10px] font-semibold rounded-full px-3 py-1 border border-violet-700 text-violet-300 hover:bg-violet-900/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ explainLoading ? 'Explaining…' : 'Explain' }}
+          </button>
+        </div>
+
+        <!-- Explanation output -->
+        <div v-if="explanation" class="mt-3 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-900/60 rounded-lg p-3 border border-slate-800">
+          {{ explanation }}
+        </div>
+        <div v-if="explainError" class="mt-2 text-xs text-rose-400">
+          {{ explainError }}
+        </div>
+
       </div>
 
     </template>
