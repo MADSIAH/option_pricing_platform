@@ -45,6 +45,14 @@ def test_build_explain_message_contains_key_fields():
     assert "4.23" in msg
     assert "0.42" in msg
     assert "black_scholes" in msg
+    assert "0.5000" in msg   # T
+    assert "0.0500" in msg   # r
+    assert "0.2200" in msg   # sigma
+    assert "0.0000" in msg   # q
+    assert "0.0500" in msg   # gamma
+    assert "0.3000" in msg   # vega
+    assert "-0.1500" in msg  # theta
+    assert "0.1000" in msg   # rho
 
 
 def test_build_explain_message_beginner_label():
@@ -61,6 +69,13 @@ def test_build_explain_message_professional_label():
     data = {**SAMPLE_DATA, "user_level": "professional"}
     msg = build_explain_message(data)
     assert "Professional" in msg
+
+
+def test_build_explain_message_unknown_level_falls_back_to_raw_key():
+    from src.ai.explain import build_explain_message
+    data = {**SAMPLE_DATA, "user_level": "expert"}
+    msg = build_explain_message(data)
+    assert "expert" in msg
 
 
 def test_call_explain_calls_generate_with_system_prompt():
