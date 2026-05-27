@@ -135,6 +135,7 @@ def get_vol_surface(
                         OptionChain.implied_vol > 0.01,
                         OptionChain.implied_vol <= 2.0,
                         OptionChain.bid > 0,
+                        OptionChain.open_interest > 0,
                     ).order_by(OptionChain.expiry.asc(), OptionChain.strike.asc())
                 ).all()
             else:
@@ -152,6 +153,7 @@ def get_vol_surface(
                             OptionChain.implied_vol > 0.01,
                             OptionChain.implied_vol <= 2.0,
                             OptionChain.bid > 0,
+                            OptionChain.open_interest > 0.1,
                         ).order_by(OptionChain.expiry.asc(), OptionChain.strike.asc())
                     ).all()
 

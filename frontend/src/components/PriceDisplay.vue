@@ -16,7 +16,7 @@ const METHOD_LABELS = {
 
 function fmt6(val) {
   if (val == null || isNaN(val)) return '—'
-  return val.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })
+  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function moneynessBadge(S, K, isCall) {
@@ -145,7 +145,7 @@ function moneynessBadge(S, K, isCall) {
 
       <!-- Put-call parity note (European only) -->
       <div v-if="result.style === 'european'" class="mt-3 pt-3 border-t border-slate-800">
-        <div class="text-[10px] text-slate-700 font-mono">
+        <div class="hint font-mono">
           Put-Call Parity: C − P = Se^(−qT) − Ke^(−rT)
         </div>
       </div>

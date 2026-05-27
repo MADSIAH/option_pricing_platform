@@ -13,38 +13,43 @@ import {
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, Tooltip, Legend, Filler)
 
-// Inline plugin: draws a vertical dashed line at current spot price
+// Inline plugin: draws vertical dashed lines at current spot (S) and strike (K)
 const currentSpotPlugin = {
   id: 'currentSpot',
   afterDraw(chart) {
-  const currentSpot = chart.config.options.plugins?.currentSpot
-  const S = currentSpot?.value
-  if (S == null || !chart.scales.x) return
-  const { ctx, scales, chartArea } = chart
-  const xPx = scales.x.getPixelForValue(S)
-  if (xPx < chartArea.left || xPx > chartArea.right) return
+    const opts = chart.config.options.plugins?.currentSpot
+    if (!opts || !chart.scales.x) return
+    const { ctx, scales, chartArea } = chart
 
-  ctx.save()
-  ctx.beginPath()
-  ctx.moveTo(xPx, chartArea.top)
-  ctx.lineTo(xPx, chartArea.bottom)
-  ctx.lineWidth = 1.5
-  ctx.strokeStyle = currentSpot?.lineColor || 'rgba(148,163,184,0.35)'
-  ctx.setLineDash([5, 5])
-  ctx.stroke()
+    function drawLine(value, label, color, dash) {
+      if (value == null) return
+      const xPx = scales.x.getPixelForValue(value)
+      if (xPx < chartArea.left || xPx > chartArea.right) return
+      ctx.save()
+      ctx.beginPath()
+      ctx.moveTo(xPx, chartArea.top)
+      ctx.lineTo(xPx, chartArea.bottom)
+      ctx.lineWidth = 1.5
+      ctx.strokeStyle = color
+      ctx.setLineDash(dash)
+      ctx.stroke()
+      ctx.fillStyle = color
+      ctx.font = '10px JetBrains Mono, monospace'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'bottom'
+      ctx.fillText(label, xPx, chartArea.top - 6)
+      ctx.restore()
+    }
 
-  ctx.fillStyle = currentSpot?.textColor || 'rgba(148,163,184,0.7)'
-  ctx.font = '10px JetBrains Mono, monospace'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'bottom'
-  ctx.fillText(`$${S.toFixed(0)}`, xPx, chartArea.top - 6)
-    ctx.restore()
+    drawLine(opts.S, `S $${Number(opts.S).toFixed(0)}`, opts.lineColor || 'rgba(148,163,184,0.35)', [5, 5])
+    drawLine(opts.K, `K $${Number(opts.K).toFixed(0)}`, opts.strikeColor || 'rgba(251,191,36,0.5)', [4, 3])
   },
 }
 
 const props = defineProps({
   chartData: { type: Object, default: null },
   currentS: { type: Number, default: 0 },
+  currentK: { type: Number, default: 0 },
   theme: { type: String, default: 'dark' },
 })
 
@@ -101,8 +106,7 @@ function buildChart(data) {
           backgroundColor: 'rgba(16,185,129,0.07)',
           borderWidth: 2,
           pointRadius: 0,
-          pointHoverRadius: 4,
-          pointHoverBackgroundColor: '#10b981',
+          pointHoverRadius: 0,
           fill: true,
           tension: 0.35,
         },
@@ -113,8 +117,7 @@ function buildChart(data) {
           backgroundColor: 'rgba(244,63,94,0.07)',
           borderWidth: 2,
           pointRadius: 0,
-          pointHoverRadius: 4,
-          pointHoverBackgroundColor: '#f43f5e',
+          pointHoverRadius: 0,
           fill: true,
           tension: 0.35,
         },
@@ -129,7 +132,7 @@ function buildChart(data) {
         padding: { top: 24 },
       },
       plugins: {
-        currentSpot: { value: props.currentS, lineColor: palette.spotLine, textColor: palette.spotText },
+        currentSpot: { S: props.currentS, K: props.currentK, lineColor: palette.spotLine, textColor: palette.spotText, strikeColor: 'rgba(251,191,36,0.55)' },
         legend: {
           display: false,
         },
@@ -142,7 +145,7 @@ function buildChart(data) {
           padding: 10,
           callbacks: {
             title: (items) => `Spot: $${Number(items[0].parsed.x).toFixed(2)}`,
-            label: (item) => ` ${item.dataset.label}: $${item.parsed.y.toFixed(4)}`,
+            label: (item) => ` ${item.dataset.label}: $${item.parsed.y.toFixed(2)}`,
           },
         },
       },
@@ -195,7 +198,8 @@ function updateChart(data) {
   const palette = paletteForTheme(props.theme)
   chart.data.datasets[0].data = spots.map((s, i) => ({ x: s, y: calls[i] }))
   chart.data.datasets[1].data = spots.map((s, i) => ({ x: s, y: puts[i] }))
-  chart.config.options.plugins.currentSpot.value = props.currentS
+  chart.config.options.plugins.currentSpot.S = props.currentS
+  chart.config.options.plugins.currentSpot.K = props.currentK
   chart.config.options.plugins.currentSpot.lineColor = palette.spotLine
   chart.config.options.plugins.currentSpot.textColor = palette.spotText
   chart.config.options.plugins.tooltip.backgroundColor = palette.tooltipBg
@@ -218,7 +222,7 @@ function updateChart(data) {
 onMounted(() => buildChart(props.chartData))
 
 watch(
-  () => [props.chartData, props.currentS, props.theme],
+  () => [props.chartData, props.currentS, props.currentK, props.theme],
   ([newData]) => {
     if (!newData) {
       if (chart) { chart.destroy(); chart = null }
@@ -237,8 +241,7 @@ onUnmounted(() => { if (chart) chart.destroy() })
   <div class="card">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
       <div>
-        <h2 class="section-label">Sensitivity Analysis</h2>
-        <span class="text-[10px] text-slate-600">Option price vs underlying spot</span>
+        <h2 class="section-label">Price Profile</h2>
       </div>
       <div class="flex items-center gap-4 text-[11px] text-slate-300">
         <span class="flex items-center gap-2">

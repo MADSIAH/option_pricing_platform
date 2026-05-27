@@ -100,7 +100,7 @@ function valueClass(val) {
           {{ g.format(result[activeTab][g.key]) }}
         </div>
         <!-- Description -->
-        <div class="mt-2 text-[10px] text-slate-700 leading-tight">{{ g.desc }}</div>
+        <div class="hint mt-2 leading-tight">{{ g.desc }}</div>
       </div>
     </div>
 
@@ -110,7 +110,7 @@ function valueClass(val) {
     </div>
 
     <!-- Gamma/Vega note -->
-    <div v-if="result" class="mt-3 pt-3 border-t border-slate-800 text-[10px] text-slate-700 flex gap-4">
+    <div v-if="result" class="hint mt-3 pt-3 border-t border-slate-800 flex gap-4">
       <span>Gamma and Vega are identical for call and put (BSM symmetry)</span>
     </div>
 

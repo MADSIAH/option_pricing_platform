@@ -36,17 +36,13 @@ const error = ref(null)
 function fmtUpdated(iso) {
   if (!iso) return null
   const d = new Date(iso)
-  return d.toLocaleString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+  return d.toLocaleString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })
 }
 
 const fmtStaleDate = computed(() => {
   if (!props.updatedAt) return null
   const d = new Date(props.updatedAt)
-  const day = d.getDate()
-  const month = d.toLocaleString('en', { month: 'short' })
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `Last updated: ${day} ${month} ${hh}:${mm}`
+  return `Last updated: ${d.toLocaleString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })}`
 })
 
 const EUROPEAN_METHODS = [
@@ -253,7 +249,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
             class="input-field pr-14" min="1" step="1" placeholder="90" />
           <span class="input-suffix">days</span>
         </div>
-        <p class="text-[11px] text-slate-600 font-mono">≈ {{ tYears }} years</p>
+        <p class="hint font-mono">≈ {{ tYears }} years</p>
       </div>
     </div>
 
@@ -280,7 +276,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
             class="input-field pr-8" step="0.01" placeholder="4.50" />
           <span class="input-suffix">%</span>
         </div>
-        <p class="text-[11px] text-slate-600">US 3-Month T-Bill proxy</p>
+        <p class="hint">US 3-Month T-Bill proxy</p>
         <p v-if="riskFreeRateWarning" class="text-[11px] text-amber-400">{{ riskFreeRateWarning }}</p>
       </div>
 
@@ -306,7 +302,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
             class="input-field pr-8" min="0.1" step="0.1" placeholder="20.0" />
           <span class="input-suffix">%</span>
         </div>
-        <p class="text-[11px] text-slate-600">Annualized {{ sigmaType === 'implied' ? 'implied' : 'historical' }} vol</p>
+        <p class="hint">Annualized {{ sigmaType === 'implied' ? 'implied' : 'historical' }} vol</p>
         <p v-if="historicalVolWarning" class="text-[11px] text-amber-400">{{ historicalVolWarning }}</p>
       </div>
     </div>
@@ -329,7 +325,7 @@ const tYears = computed(() => (props.modelValue.T / 365).toFixed(4))
             class="input-field pr-8" min="0" step="0.1" placeholder="0.0" />
           <span class="input-suffix">%</span>
         </div>
-        <p class="text-[11px] text-slate-600">Continuous dividend yield (0 for non-dividend stocks)</p>
+        <p class="hint">Continuous dividend yield (0 for non-dividend stocks)</p>
       </div>
     </div>
 
