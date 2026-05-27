@@ -6,7 +6,7 @@ import os
 from google import genai
 from google.genai import types
 
-MODEL = "gemini-1.5-flash"
+MODEL = "gemini-2.0-flash"
 
 
 class GeminiError(Exception):
