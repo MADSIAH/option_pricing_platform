@@ -148,7 +148,7 @@ onUnmounted(() => { if (plotEl.value) Plotly.purge(plotEl.value) })
     <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="section-label">Price Surface</h2>
-        <span class="text-[10px] text-slate-600">Model price across strikes and maturities vs market mid-prices</span>
+        <span class="hint">Model price across strikes and maturities vs market mid-prices</span>
       </div>
       <div class="flex items-center gap-3">
         <div v-if="loading" class="flex items-center gap-1.5 text-[11px] text-slate-500">

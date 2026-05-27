@@ -45,7 +45,7 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
             <span class="text-xs text-slate-400 hidden sm:inline">Vol</span>
             <span class="text-xs font-mono font-semibold text-blue-400">{{ sigma.toFixed(1) }}%</span>
           </div>
-          <div class="text-[10px] text-slate-600 hidden md:block">{{ today }}</div>
+          <div class="hint hidden md:block">{{ today }}</div>
           <button
             class="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300 transition-colors hover:border-emerald-500 hover:text-emerald-400"
             @click="$emit('toggle-theme')"

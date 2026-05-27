@@ -140,8 +140,16 @@
   }
 
   .section-label {
-    @apply text-xs font-semibold uppercase tracking-wider text-slate-400;
+    @apply text-sm font-semibold uppercase tracking-wider text-slate-400;
   }
+
+  .hint {
+    @apply text-[12px] text-slate-300;
+  }
+}
+
+.theme-light .hint {
+  color: #475569;
 }
 
 .theme-light .card {
