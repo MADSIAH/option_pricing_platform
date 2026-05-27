@@ -25,7 +25,7 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
           <div>
             <div class="font-bold text-slate-100 text-xl leading-none tracking-tight">OptionDesk</div>
             <div class="text-xs text-slate-500 leading-none mt-1 hidden sm:block">
-              Black-Scholes · European Options
+              Options Pricing, Made Simple.
             </div>
           </div>
         </div>
