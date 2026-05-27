@@ -137,7 +137,7 @@ watch([inputs, method, optionStyle], () => {
           :key="tab.key"
           @click="view = tab.key"
           :class="[
-            'px-4 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px',
+            'px-7 py-3.5 text-lg font-bold transition-colors border-b-2 -mb-px',
             view === tab.key
               ? 'border-emerald-500 text-emerald-400'
               : 'border-transparent text-slate-500 hover:text-slate-300'

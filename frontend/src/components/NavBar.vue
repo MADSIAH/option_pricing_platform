@@ -15,16 +15,16 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
 <template>
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:h-16">
+      <div class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:h-20">
 
         <!-- Brand -->
-        <div class="flex items-center gap-3 shrink-0">
-          <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-slate-950 text-base select-none">
+        <div class="flex items-center gap-4 shrink-0">
+          <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center font-bold text-slate-950 text-xl select-none">
             Δ
           </div>
           <div>
-            <div class="font-semibold text-slate-100 text-base leading-none tracking-tight">OptionDesk</div>
-            <div class="text-[10px] text-slate-500 leading-none mt-0.5 hidden sm:block">
+            <div class="font-bold text-slate-100 text-xl leading-none tracking-tight">OptionDesk</div>
+            <div class="text-xs text-slate-500 leading-none mt-1 hidden sm:block">
               Black-Scholes · European Options
             </div>
           </div>
@@ -52,7 +52,7 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
           <button
             @click="$emit('toggle-chat')"
             :class="[
-              'flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors',
+              'flex items-center gap-2 rounded-xl border px-6 py-3 text-lg font-bold transition-colors',
               chatOpen
                 ? 'bg-violet-700 border-violet-500 text-white shadow-lg shadow-violet-900/40'
                 : 'border-violet-600 bg-violet-900/30 text-violet-300 hover:bg-violet-700 hover:border-violet-500 hover:text-white'
@@ -60,7 +60,7 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
             type="button"
             aria-label="Toggle AI chat panel"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
             </svg>
             Ask AI
