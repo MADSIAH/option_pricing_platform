@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+from src.ai.client import GeminiError
 from src.api.main import app
 
 client = TestClient(app)
@@ -49,19 +50,17 @@ def test_explain_returns_explanation():
 
 
 def test_explain_returns_502_on_gemini_error():
-    from src.ai.client import GeminiError
     with patch("src.api.routes.ai.call_explain", side_effect=GeminiError("quota exceeded")):
         response = client.post("/api/v1/ai/explain", json=EXPLAIN_PAYLOAD)
     assert response.status_code == 502
-    assert "unavailable" in response.json()["error"]
+    assert "unavailable" in response.json()["detail"]
 
 
 def test_explain_returns_500_on_missing_key():
-    from src.ai.client import GeminiError
     with patch("src.api.routes.ai.call_explain", side_effect=GeminiError("GEMINI_API_KEY not configured")):
         response = client.post("/api/v1/ai/explain", json=EXPLAIN_PAYLOAD)
     assert response.status_code == 500
-    assert "not configured" in response.json()["error"]
+    assert "not configured" in response.json()["detail"]
 
 
 def test_chat_returns_reply():
@@ -78,7 +77,6 @@ def test_chat_returns_422_on_empty_messages():
 
 
 def test_chat_returns_502_on_gemini_error():
-    from src.ai.client import GeminiError
     with patch("src.api.routes.ai.call_chat", side_effect=GeminiError("model overloaded")):
         response = client.post("/api/v1/ai/chat", json=CHAT_PAYLOAD)
     assert response.status_code == 502

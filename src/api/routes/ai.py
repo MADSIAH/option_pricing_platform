@@ -1,8 +1,7 @@
 """AI endpoints: explain and chat."""
 from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException
 
 from src.ai.chat import call_chat
 from src.ai.client import GeminiError
@@ -17,24 +16,24 @@ from src.api.schemas import (
 router = APIRouter(tags=["ai"])
 
 
-def _gemini_error_response(exc: GeminiError) -> JSONResponse:
+def _raise_gemini_error(exc: GeminiError) -> None:
     msg = str(exc)
     if "not configured" in msg:
-        return JSONResponse(status_code=500, content={"error": "AI service not configured"})
-    return JSONResponse(status_code=502, content={"error": "AI service unavailable", "detail": msg})
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    raise HTTPException(status_code=502, detail=f"AI service unavailable: {msg}")
 
 
 @router.post("/ai/explain", response_model=ExplainResponse)
-def explain(payload: ExplainRequest) -> ExplainResponse | JSONResponse:
+def explain(payload: ExplainRequest) -> ExplainResponse:
     try:
         explanation = call_explain(payload.model_dump())
         return ExplainResponse(explanation=explanation)
     except GeminiError as exc:
-        return _gemini_error_response(exc)
+        _raise_gemini_error(exc)
 
 
 @router.post("/ai/chat", response_model=ChatResponse)
-def chat(payload: ChatRequest) -> ChatResponse | JSONResponse:
+def chat(payload: ChatRequest) -> ChatResponse:
     try:
         reply = call_chat(
             [m.model_dump() for m in payload.messages],
@@ -42,4 +41,4 @@ def chat(payload: ChatRequest) -> ChatResponse | JSONResponse:
         )
         return ChatResponse(reply=reply)
     except GeminiError as exc:
-        return _gemini_error_response(exc)
+        _raise_gemini_error(exc)
