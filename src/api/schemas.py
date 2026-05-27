@@ -291,13 +291,13 @@ class ExplainRequest(BaseModel):
     user_level: UserLevel
     option_type: OptionType
     style: OptionStyle
-    method: str
-    S: float
-    K: float
-    T: float
+    method: PricingMethod
+    S: float = Field(..., gt=0)
+    K: float = Field(..., gt=0)
+    T: float = Field(..., gt=0)
     r: float
-    sigma: float
-    q: float
+    sigma: float = Field(..., gt=0)
+    q: float = Field(..., ge=0)
     prices: dict[str, PriceModelOutput]
 
 
