@@ -9,6 +9,8 @@ import GreeksGrid from './components/GreeksGrid.vue'
 import SensitivityChart from './components/SensitivityChart.vue'
 import VolSurface from './components/VolSurface.vue'
 import PriceSurface from './components/PriceSurface.vue'
+import ChatPanel from './components/ChatPanel.vue'
+import ExplainPanel from './components/ExplainPanel.vue'
 
 const ticker = ref(null)
 const method = ref('black_scholes')
@@ -17,6 +19,7 @@ const sigmaType = ref('implied')
 const view = ref('pricing')
 const isStale = ref(false)
 const marketUpdatedAt = ref(null)
+const chatOpen = ref(false)
 
 const inputs = ref({ S: 0, K: 0, T: 0, r: 0, sigma: 0, q: 0 })
 
@@ -54,7 +57,6 @@ const canPrice = computed(() => {
   return S > 0 && K > 0 && T > 0 && sigma > 0
 })
 
-// Sensitivity chart stays on local JS BS — needs to be instant/real-time
 const chartData = computed(() => {
   const { S, K, T, r, sigma, q } = inputs.value
   if (!canPrice.value) return null
@@ -116,7 +118,15 @@ watch([inputs, method, optionStyle], () => {
 
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-100" style="font-family: Inter, system-ui, sans-serif;">
-    <NavBar :r="inputs.r" :sigma="inputs.sigma" :ticker="ticker" :theme="theme" @toggle-theme="toggleTheme" />
+    <NavBar
+      :r="inputs.r"
+      :sigma="inputs.sigma"
+      :ticker="ticker"
+      :theme="theme"
+      :chat-open="chatOpen"
+      @toggle-theme="toggleTheme"
+      @toggle-chat="chatOpen = !chatOpen"
+    />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
 
@@ -127,7 +137,7 @@ watch([inputs, method, optionStyle], () => {
           :key="tab.key"
           @click="view = tab.key"
           :class="[
-            'px-4 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px',
+            'px-7 py-3.5 text-lg font-bold transition-colors border-b-2 -mb-px',
             view === tab.key
               ? 'border-emerald-500 text-emerald-400'
               : 'border-transparent text-slate-500 hover:text-slate-300'
@@ -137,8 +147,6 @@ watch([inputs, method, optionStyle], () => {
 
       <!-- Pricing & Greeks view -->
       <div v-if="view === 'pricing'" class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-        <!-- Left: parameter inputs -->
         <div class="lg:col-span-2">
           <InputPanel
             v-model="inputs"
@@ -150,8 +158,6 @@ watch([inputs, method, optionStyle], () => {
             v-model:updatedAt="marketUpdatedAt"
           />
         </div>
-
-        <!-- Right: results -->
         <div class="lg:col-span-3 flex flex-col gap-5">
           <PriceDisplay
             :result="result"
@@ -160,9 +166,9 @@ watch([inputs, method, optionStyle], () => {
             :error="priceError"
           />
           <GreeksGrid :result="result" />
+          <ExplainPanel :result="result" :inputs="inputs" />
           <SensitivityChart v-if="optionStyle === 'european'" :chart-data="chartData" :current-s="inputs.S" :current-k="inputs.K" :theme="theme" />
         </div>
-
       </div>
 
       <!-- Surfaces view -->
@@ -182,5 +188,8 @@ watch([inputs, method, optionStyle], () => {
     <footer class="mt-12 border-t border-slate-800 py-6 text-center text-xs text-slate-600">
       Option Pricing Platform · Black-Scholes · Monte Carlo · Binomial Tree · BAW · For educational purposes
     </footer>
+
+    <!-- Chat panel (rendered outside main flow, fixed positioned) -->
+    <ChatPanel :open="chatOpen" @close="chatOpen = false" />
   </div>
 </template>

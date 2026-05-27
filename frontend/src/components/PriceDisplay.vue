@@ -1,5 +1,5 @@
 <script setup>
-defineProps({
+const props = defineProps({
   result:  { type: Object,  default: null },
   inputs:  { type: Object,  required: true },
   loading: { type: Boolean, default: false },

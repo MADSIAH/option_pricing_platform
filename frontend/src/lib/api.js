@@ -48,3 +48,29 @@ export async function fetchPriceSurface(payload) {
   }
   return res.json()
 }
+
+export async function explainResult(payload) {
+  const res = await fetch(`${BASE}/ai/explain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || err.error || `Explain failed: ${res.status}`)
+  }
+  return res.json() // { explanation: string }
+}
+
+export async function sendChat(messages, userLevel) {
+  const res = await fetch(`${BASE}/ai/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, user_level: userLevel }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || err.error || `Chat failed: ${res.status}`)
+  }
+  return res.json() // { reply: string }
+}

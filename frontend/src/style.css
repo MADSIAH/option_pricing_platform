@@ -140,7 +140,7 @@
   }
 
   .section-label {
-    @apply text-sm font-semibold uppercase tracking-wider text-slate-400;
+    @apply text-sm font-bold uppercase tracking-wider text-slate-300;
   }
 
   .hint {

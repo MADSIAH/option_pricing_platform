@@ -88,9 +88,11 @@ async function selectTicker(t) {
     historicalVolWarning.value = data.historical_vol_warning ?? null
     riskFreeRateWarning.value = data.risk_free_rate_warning ?? null
     emit('update:isStale', data.stale === true)
+    const spot = +data.spot_price.toFixed(2)
     emit('update:modelValue', {
       ...props.modelValue,
-      S: +data.spot_price.toFixed(2),
+      S: spot,
+      K: spot,
       r: data.risk_free_rate != null ? +(data.risk_free_rate * 100).toFixed(2) : null,
       sigma,
       q: +(data.dividend_yield).toFixed(2),
