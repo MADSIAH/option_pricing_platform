@@ -1,12 +1,13 @@
 <script setup>
 defineProps({
-  r: { type: Number, default: 4.5 },
-  sigma: { type: Number, default: 20 },
-  ticker: { type: String, default: null },
-  theme: { type: String, default: 'dark' },
+  r:        { type: Number,  default: 4.5 },
+  sigma:    { type: Number,  default: 20 },
+  ticker:   { type: String,  default: null },
+  theme:    { type: String,  default: 'dark' },
+  chatOpen: { type: Boolean, default: false },
 })
 
-defineEmits(['toggle-theme'])
+defineEmits(['toggle-theme', 'toggle-chat'])
 
 const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 </script>
@@ -29,7 +30,7 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
           </div>
         </div>
 
-        <!-- Market data pills -->
+        <!-- Market data pills + controls -->
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
           <div v-if="ticker" class="flex items-center gap-1.5 bg-emerald-900/30 border border-emerald-700/50 rounded-full px-3 py-1">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -46,6 +47,26 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
             <span class="text-xs font-mono font-semibold text-blue-400">{{ sigma.toFixed(1) }}%</span>
           </div>
           <div class="hint hidden md:block">{{ today }}</div>
+
+          <!-- Ask AI toggle -->
+          <button
+            @click="$emit('toggle-chat')"
+            :class="[
+              'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors',
+              chatOpen
+                ? 'bg-violet-900/40 border-violet-600 text-violet-300'
+                : 'border-slate-700 bg-slate-800 text-slate-400 hover:border-violet-600 hover:text-violet-300'
+            ]"
+            type="button"
+            aria-label="Toggle AI chat panel"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            <span class="hidden sm:inline">Ask AI</span>
+          </button>
+
+          <!-- Theme toggle -->
           <button
             class="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300 transition-colors hover:border-emerald-500 hover:text-emerald-400"
             @click="$emit('toggle-theme')"
