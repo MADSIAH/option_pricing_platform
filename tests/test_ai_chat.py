@@ -53,3 +53,13 @@ def test_call_chat_returns_reply():
         result = call_chat(MESSAGES, "finance_student")
 
     assert result == "Gamma accelerates delta."
+
+
+def test_call_chat_unknown_level_uses_raw_key():
+    from src.ai.chat import call_chat
+
+    with patch("src.ai.chat.generate", return_value="ok") as mock_gen:
+        call_chat(MESSAGES, "expert")
+
+    last_text = mock_gen.call_args[0][1][-1]["parts"][0]["text"]
+    assert "[User level: expert]" in last_text
