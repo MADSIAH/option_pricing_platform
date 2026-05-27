@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from enum import Enum
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -274,3 +276,44 @@ class GreeksProfileResponse(BaseModel):
     data_source: str
     updated_at: str | None = None
     stale: bool = False
+
+
+# ── AI feature schemas ─────────────────────────────────────────────────────
+
+
+class UserLevel(str, Enum):
+    beginner = "beginner"
+    finance_student = "finance_student"
+    professional = "professional"
+
+
+class ExplainRequest(BaseModel):
+    user_level: UserLevel
+    option_type: OptionType
+    style: OptionStyle
+    method: str
+    S: float
+    K: float
+    T: float
+    r: float
+    sigma: float
+    q: float
+    prices: dict[str, PriceModelOutput]
+
+
+class ExplainResponse(BaseModel):
+    explanation: str
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "model"]
+    content: str
+
+
+class ChatRequest(BaseModel):
+    user_level: UserLevel
+    messages: list[ChatMessage] = Field(..., min_length=1)
+
+
+class ChatResponse(BaseModel):
+    reply: str
