@@ -14,4 +14,4 @@ fastapi
 uvicorn[standard]
 pydantic
 
-google-generativeai
+google-genai>=1.0
