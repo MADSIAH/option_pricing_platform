@@ -35,3 +35,6 @@ Thumbs.db
 
 # Runtime data (Spec A)
 /data/
+
+# Local dev tools (never commit)
+/tools/

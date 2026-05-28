@@ -25,6 +25,10 @@ def build_surface_explain_message(data: dict) -> str:
         f"User level: {level}",
         f"Ticker: {ticker}  |  Option type: {option_type}",
         "",
+        "Note: put_skew measures the IV premium at lower strikes (left tail of the"
+        " distribution), regardless of option type. deep_itm_bias is the mean"
+        f" signed divergence for {option_type}s at moneyness < 0.80.",
+        "",
         "VOL SURFACE SCALARS",
         f"  smile_intensity : {data['smile_intensity']:.4f}",
         f"  put_skew        : {data['put_skew']:.4f}",

@@ -7,7 +7,7 @@
 ![Stack](https://img.shields.io/badge/stack-Vue3%20%7C%20FastAPI%20%7C%20Python-blue)
 ![License](https://img.shields.io/badge/license-TBD-lightgrey)
 
-An educational, AI-enhanced platform for options pricing, Greeks analysis, volatility surface modeling, and interactive financial visualization — built for learners and practitioners alike.
+An educational, AI-enhanced platform for options pricing, Greeks analysis, volatility surface modeling, and interactive financial visualization — built for three levels of user: complete beginners, finance students, and practitioners.
 
 ---
 
@@ -47,13 +47,13 @@ This platform makes that understanding tangible. It computes option prices using
 
 ## Target Users
 
-The platform is primarily **didactic**. It is designed for:
+The platform is primarily **didactic**. All AI features adapt their language, depth, and tone to the user's selected level:
 
-| User | Goal |
-|------|------|
-| **Finance students** | Build intuition for derivatives pricing and risk sensitivities |
-| **Course practitioners** | Validate theoretical models against live market data |
-| **Self-learners** | Explore options mechanics through an interactive, guided interface |
+| Level | Who | What they get |
+|-------|-----|---------------|
+| **Beginner** | No finance background | Plain language, real-world analogies, dollar examples — no formulas |
+| **Finance Student** | Studying derivatives | Full Greeks with formulas and intuition, model limitations, put-call parity |
+| **Professional** | Deep domain knowledge | Concise, peer-level observations focused on model reliability, data quality, and practical edge cases |
 
 ---
 
@@ -151,8 +151,6 @@ These are stretch goals — planned but not guaranteed for the final release:
 
 ## Tech Stack
 
-> **Status: TBD** — final technology choices will be documented here as decisions are confirmed.
-
 | Layer | Technology | Status |
 |-------|-----------|--------|
 | Pricing engine | Python (NumPy, SciPy) | Completed |
@@ -236,4 +234,4 @@ The project will be developed on GitHub with regular commits and documentation u
 
 ---
 
-*Work in progress — last updated May 28, 2026.*
+*Last updated May 29, 2026.*

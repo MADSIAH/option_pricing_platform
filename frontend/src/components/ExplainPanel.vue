@@ -56,7 +56,9 @@ async function runExplain() {
     const data = await explainResult(payload)
     explanation.value = data.explanation
   } catch (e) {
-    explainError.value = e.message
+    explainError.value = e.message.includes('unavailable') || e.message.includes('503') || e.message.includes('502')
+      ? 'Gemini is temporarily overloaded — please try again in a moment.'
+      : e.message
   } finally {
     explainLoading.value = false
   }
@@ -100,6 +102,11 @@ async function runExplain() {
       </svg>
       {{ explainLoading ? 'Explaining…' : 'Explain these results' }}
     </button>
+
+    <!-- Disclaimer -->
+    <p class="mt-2 text-center text-[10px] text-rose-400/80 font-bold tracking-wide">
+      Educational tool — not investment advice.
+    </p>
 
     <!-- Rendered markdown output -->
     <div

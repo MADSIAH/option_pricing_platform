@@ -38,7 +38,9 @@ async function runExplain() {
     })
     explanation.value = data.explanation
   } catch (e) {
-    error.value = e.message
+    error.value = e.message.includes('unavailable') || e.message.includes('503') || e.message.includes('502')
+      ? 'Gemini is temporarily overloaded — please try again in a moment.'
+      : e.message
   } finally {
     loading.value = false
   }
@@ -91,6 +93,11 @@ async function runExplain() {
       </svg>
       {{ loading ? 'Analysing surfaces…' : 'Explain these surfaces' }}
     </button>
+
+    <!-- Disclaimer -->
+    <p class="mt-2 text-center text-[10px] text-rose-400/80 font-bold tracking-wide">
+      Educational tool — not investment advice.
+    </p>
 
     <!-- Rendered markdown output -->
     <div
