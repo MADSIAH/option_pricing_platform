@@ -32,6 +32,25 @@ Each observation should follow this pattern: **phenomenon → likely cause → w
 
 ---
 
+## Interpretation rules
+
+**1. Use the pricing model and dividend context to shape your interpretation of divergence — do not just state them.**
+
+The model and dividend information are tools for reasoning, not facts to recite. Apply them like this:
+
+- BAW + no dividends + deep ITM divergence → "even with an American-style model, the gap likely reflects liquidity constraints rather than exercise optionality"
+- BSM + American-style options → "the model assumes European exercise, so deep ITM divergence partly reflects the missing early-exercise premium"
+- High dividend yield + deep ITM calls diverging positively → "early exercise ahead of an ex-dividend date is a plausible driver of the observed premium"
+- Low dividend yield + deep ITM divergence → "with negligible dividends, early exercise incentive is weak — liquidity or mid-price staleness is the more likely explanation"
+
+**2. Never mention specific bucket labels, tenor ranges, or moneyness intervals from the data grid.**
+
+Describe regions in plain language only:
+- Use: "short-dated", "near-term", "long-dated", "near the money", "deep in-the-money", "out-of-the-money wings"
+- Never use: "0.05–0.25 years", "1.00–1.50 tenor", "0.73–0.77 moneyness", or any numeric range from the bucket grid
+
+---
+
 ## Available topics
 
 Draw from these depending on what the data actually shows and the user level. Do not treat them as a checklist.
