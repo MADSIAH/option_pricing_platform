@@ -188,7 +188,7 @@ onUnmounted(() => { if (plotEl.value) Plotly.purge(plotEl.value) })
     <!-- Divergence note (shown when surface is rendered) -->
     <div v-if="ticker && !loading && !error" class="mt-4 rounded-lg bg-slate-800/70 border border-slate-600/60 px-4 py-3 text-[13px] text-slate-200 leading-relaxed">
       <p v-if="optionStyle === 'european'">
-        <span class="text-blue-400 font-semibold">BSM vs. market:</span> Divergence may reflect the volatility smile or model assumptions — BSM uses a single flat vol, while market prices embed a different implied vol per strike. Note that BSM prices <em>European</em> options; most listed equity options are <em>American</em>.
+        <span class="text-blue-400 font-semibold">BSM vs. market:</span> Divergence may reflect the volatility smile or model assumptions — BSM uses a single volatility, while market prices embed a different implied vol per strike. Note that BSM prices <em>European</em> options; most listed equity options are <em>American</em>.
       </p>
       <p v-else>
         <span class="text-blue-400 font-semibold">Model vs. market:</span> Divergence may reflect the volatility smile or the variation in implied vol across strikes — the model uses a single vol input, while market prices embed different IVs per contract.
