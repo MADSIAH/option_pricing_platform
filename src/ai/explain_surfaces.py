@@ -21,6 +21,25 @@ def build_surface_explain_message(data: dict) -> str:
     else:
         deep_itm_line = "  deep_itm_bias        : n/a (no contracts with moneyness < 0.80)"
 
+    # --- Market context block (only include fields present in the payload) ---
+    ctx_lines = []
+    if data.get("pricing_model"):
+        ctx_lines.append(f"  Pricing model      : {data['pricing_model']}")
+    if data.get("spot_price") is not None:
+        ctx_lines.append(f"  Spot price         : {data['spot_price']:.2f}")
+    if data.get("risk_free_rate") is not None:
+        ctx_lines.append(f"  Risk-free rate     : {data['risk_free_rate']*100:.2f}%")
+    if data.get("dividend_yield") is not None:
+        div_flag = "yes" if data.get("has_dividend") else "no"
+        ctx_lines.append(f"  Dividend yield     : {data['dividend_yield']*100:.2f}%  ({div_flag})")
+    if data.get("atm_iv") is not None:
+        ctx_lines.append(f"  ATM implied vol    : {data['atm_iv']*100:.2f}%")
+    if data.get("vol_used") is not None:
+        src = data.get("vol_source", "")
+        ctx_lines.append(f"  Vol (price surface): {data['vol_used']*100:.2f}%  [{src}]")
+    if data.get("surface_date"):
+        ctx_lines.append(f"  Surface date       : {data['surface_date'][:10]}")
+
     lines = [
         f"User level: {level}",
         f"Ticker: {ticker}  |  Option type: {option_type}",
@@ -29,6 +48,7 @@ def build_surface_explain_message(data: dict) -> str:
         " distribution), regardless of option type. deep_itm_bias is the mean"
         f" signed divergence for {option_type}s at moneyness < 0.80.",
         "",
+        *( ["MARKET CONTEXT", *ctx_lines, ""] if ctx_lines else [] ),
         "VOL SURFACE SCALARS",
         f"  smile_intensity : {data['smile_intensity']:.4f}",
         f"  put_skew        : {data['put_skew']:.4f}",

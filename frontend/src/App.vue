@@ -208,6 +208,8 @@ watch(ticker, () => {
           :metrics="surfaceMetrics"
           :ready="surfaceReady"
           :ticker="ticker"
+          :price-surface="priceSurfaceData"
+          :inputs="inputs"
         />
       </div>
 

@@ -274,6 +274,16 @@ class SurfaceExplainRequest(BaseModel):
     deep_itm_bias: float | None
     divergence_threshold: float
     buckets: list[BucketMetrics]
+    # Market context — optional, enriches the LLM prompt when available
+    pricing_model: str | None = None
+    spot_price: float | None = None
+    vol_used: float | None = None
+    vol_source: str | None = None
+    risk_free_rate: float | None = None
+    dividend_yield: float | None = None
+    has_dividend: bool | None = None
+    atm_iv: float | None = None
+    surface_date: str | None = None
 
 
 class SurfaceExplainResponse(BaseModel):

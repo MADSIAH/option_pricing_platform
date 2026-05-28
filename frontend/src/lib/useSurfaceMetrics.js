@@ -77,7 +77,7 @@ function computeVolMetrics(volPoints, spot, mBuckets) {
     }
   }
 
-  return { smile_intensity, put_skew, spikeMap }
+  return { smile_intensity, put_skew, atm_iv, spikeMap }
 }
 
 function interpolateModelPrice(K, T, K_values, T_values, z) {
@@ -160,7 +160,7 @@ export function useSurfaceMetrics(volData, priceData) {
     const mBuckets = computeMBuckets(points, spot)
     if (mBuckets.length === 0) return
 
-    const { smile_intensity, put_skew, spikeMap } = computeVolMetrics(points, spot, mBuckets)
+    const { smile_intensity, put_skew, atm_iv, spikeMap } = computeVolMetrics(points, spot, mBuckets)
     const { deep_itm_bias, divergence_threshold, divMap, volMap } =
       computePriceMetrics(market_points, K_values, T_values, z, S_ref, mBuckets)
 
@@ -178,7 +178,7 @@ export function useSurfaceMetrics(volData, priceData) {
       }
     }
 
-    metrics.value = { smile_intensity, put_skew, deep_itm_bias, divergence_threshold, buckets }
+    metrics.value = { smile_intensity, put_skew, atm_iv, deep_itm_bias, divergence_threshold, buckets }
     ready.value = true
   }, { deep: true })
 

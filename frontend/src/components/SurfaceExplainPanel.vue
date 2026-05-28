@@ -4,9 +4,11 @@ import { marked } from 'marked'
 import { explainSurfaces } from '../lib/api.js'
 
 const props = defineProps({
-  metrics: { type: Object, default: null },
-  ready:   { type: Boolean, default: false },
-  ticker:  { type: String, default: null },
+  metrics:      { type: Object, default: null },
+  ready:        { type: Boolean, default: false },
+  ticker:       { type: String, default: null },
+  priceSurface: { type: Object, default: null },
+  inputs:       { type: Object, default: null },
 })
 
 const LEVELS = [
@@ -30,8 +32,23 @@ async function runExplain() {
   error.value       = null
   explanation.value = null
   try {
+    const ps = props.priceSurface
+    const inp = props.inputs
+    const context = ps ? {
+      pricing_model: ps.style === 'european' ? 'Black-Scholes' : 'Barone-Adesi-Whaley',
+      spot_price:    ps.S_ref ?? null,
+      vol_used:      ps.sigma ?? null,
+      vol_source:    ps.sigma_source ?? null,
+      risk_free_rate: inp ? +(inp.r / 100).toFixed(4) : null,
+      dividend_yield: inp ? +(inp.q / 100).toFixed(4) : null,
+      has_dividend:   inp ? inp.q > 0 : null,
+      atm_iv:        props.metrics?.atm_iv ?? null,
+      surface_date:  ps.updated_at ?? null,
+    } : {}
+
     const data = await explainSurfaces({
       ...props.metrics,
+      ...context,
       user_level:  level.value,
       ticker:      props.ticker,
       option_type: 'call',
