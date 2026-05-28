@@ -11,6 +11,8 @@ const props = defineProps({
   theme:       { type: String, default: 'dark' },
 })
 
+const emit = defineEmits(['surfaceLoaded'])
+
 const optionType = ref('call')
 const loading    = ref(false)
 const error      = ref(null)
@@ -127,6 +129,13 @@ async function loadAndPlot() {
       Plotly.newPlot(plotEl.value, traces, layout, { responsive: true })
       plotted = true
     }
+    emit('surfaceLoaded', {
+      market_points: data.market_points,
+      K_values: data.K_values,
+      T_values: data.T_values,
+      z: data.z,
+      S_ref: data.S_ref,
+    })
   } catch (e) {
     error.value = e.message
   } finally {
@@ -168,12 +177,22 @@ onUnmounted(() => { if (plotEl.value) Plotly.purge(plotEl.value) })
       </div>
     </div>
 
-    <div v-if="!ticker" class="flex items-center justify-center h-64 text-slate-600 text-sm">
-      Select a ticker to view the price surface
+    <div v-if="!ticker" class="flex items-center justify-center h-64 text-slate-400 text-sm text-center px-6">
+      Go to the <strong class="text-slate-300 mx-1">Pricing &amp; Greeks</strong> tab and select a ticker and style to visualize the surface.
     </div>
     <div v-else-if="error" class="flex items-center justify-center h-64 text-rose-400 text-sm">
       {{ error }}
     </div>
     <div v-else ref="plotEl" style="height: 560px;" class="w-full"></div>
+
+    <!-- Divergence note (shown when surface is rendered) -->
+    <div v-if="ticker && !loading && !error" class="mt-4 rounded-lg bg-slate-800/70 border border-slate-600/60 px-4 py-3 text-[13px] text-slate-200 leading-relaxed">
+      <p v-if="optionStyle === 'european'">
+        <span class="text-blue-400 font-semibold">BSM vs. market:</span> Divergence may reflect the volatility smile or model assumptions — BSM uses a single flat vol, while market prices embed a different implied vol per strike. Note that BSM prices <em>European</em> options; most listed equity options are <em>American</em>.
+      </p>
+      <p v-else>
+        <span class="text-blue-400 font-semibold">Model vs. market:</span> Divergence may reflect the volatility smile or the variation in implied vol across strikes — the model uses a single vol input, while market prices embed different IVs per contract.
+      </p>
+    </div>
   </div>
 </template>

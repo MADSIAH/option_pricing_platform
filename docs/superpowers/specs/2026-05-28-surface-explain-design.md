@@ -98,14 +98,18 @@ For each market point:
 ```
 moneyness       = K / S_ref
 model_price     = bilinear interpolation of z[T_idx][K_idx]
-divergence      = (mid_price − model_price) / model_price   [signed]
+
+if model_price < 0.10: skip this point for divergence (still counted in volume/liquidity)
+else: divergence = (mid_price − model_price) / model_price   [signed]
 ```
+
+The `model_price < 0.10` floor prevents near-zero model prices on deep-OTM options from producing explosive percentage divergences (e.g. model=0.02, mid=0.05 → +150%) that would pollute both the 2-sigma threshold and the per-bucket means. Those points are still assigned to their bucket for volume/OI aggregation.
 
 The grid is a regular linspace in both K and T, so bilinear interpolation reduces to direct index arithmetic (no external library needed).
 
 **Adaptive divergence threshold:**
 ```
-divergence_threshold = mean(|div|) + 2 × std(|div|)   across all market_points
+divergence_threshold = mean(|div|) + 2 × std(|div|)   across all eligible market_points
 ```
 Adapts per ticker: tight for SPY (~10%), wider for TSLA (~40%). Passed as `divergence_threshold` in the payload so the LLM has the reference when interpreting `pct_large_divergence`.
 
@@ -218,6 +222,11 @@ System prompt instructing Gemini to:
 - Relate liquidity (volume/OI) to regions of high divergence or spike activity
 - Draw cross-surface observations (e.g. high IV spike + high divergence in same bucket)
 - Adapt depth and terminology to user level
+
+**Critical framing instruction for divergence metrics (must be in system prompt):**
+- `mean_abs_div` per bucket is the typical magnitude of model-vs-market divergence for that region — this is the primary signal for how well the model fits.
+- `pct_large_div` and `count_large_div` identify local outliers within the ticker's own distribution (threshold = mean + 2σ of all divergences). By construction ~2–5% of points exceed this. Do not interpret near-zero counts as "the model fits well" — a bucket where `pct_large_div = 0` but `mean_abs_div = 0.35` still shows substantial systematic mispricing. Conversely, do not alarm if a few buckets have `pct_large_div > 0` — these are the locally unusual contracts, not catastrophic failures.
+- Always anchor the narrative on `mean_abs_div` and `mean_signed_div` first; treat `pct_large_div` as a secondary signal for spotting concentrated outlier clusters.
 
 ---
 

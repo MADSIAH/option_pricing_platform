@@ -232,6 +232,8 @@ class MarketPricePoint(BaseModel):
     K: float
     T: float
     mid_price: float
+    volume: int = 0
+    open_interest: int = 0
 
 
 class PriceSurfaceResponse(BaseModel):
@@ -249,6 +251,33 @@ class PriceSurfaceResponse(BaseModel):
     data_source: str
     updated_at: str
     stale: bool
+
+
+class BucketMetrics(BaseModel):
+    t_label: str
+    m_label: str
+    spike_count: int
+    mean_signed_div: float | None
+    mean_abs_div: float | None
+    pct_large_div: float | None
+    count_large_div: int
+    volume: int
+    open_interest: int
+
+
+class SurfaceExplainRequest(BaseModel):
+    user_level: UserLevel
+    ticker: str
+    option_type: OptionType
+    smile_intensity: float
+    put_skew: float
+    deep_itm_bias: float | None
+    divergence_threshold: float
+    buckets: list[BucketMetrics]
+
+
+class SurfaceExplainResponse(BaseModel):
+    explanation: str
 
 
 class GreeksProfilePoint(BaseModel):

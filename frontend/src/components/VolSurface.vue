@@ -8,6 +8,8 @@ const props = defineProps({
   theme:  { type: String, default: 'dark' },
 })
 
+const emit = defineEmits(['surfaceLoaded'])
+
 const plotEl    = ref(null)
 const loading   = ref(false)
 const error     = ref(null)
@@ -133,6 +135,7 @@ async function loadAndPlot() {
 
     Plotly.newPlot(plotEl.value, traces, buildLayout(props.theme, title, S !== null), { responsive: true })
     plotted = true
+    if (S !== null) emit('surfaceLoaded', { points: data.points, spot: S })
   } catch (e) {
     error.value = e.message
   } finally {
@@ -161,12 +164,18 @@ onUnmounted(() => { if (plotEl.value) Plotly.purge(plotEl.value) })
       </span>
     </div>
 
-    <div v-if="!ticker" class="flex items-center justify-center h-64 text-slate-600 text-sm">
-      Select a ticker to view the volatility surface
+    <div v-if="!ticker" class="flex items-center justify-center h-64 text-slate-400 text-sm text-center px-6">
+      Go to the <strong class="text-slate-300 mx-1">Pricing &amp; Greeks</strong> tab and select a ticker to visualize the surface.
     </div>
     <div v-else-if="error" class="flex items-center justify-center h-64 text-rose-400 text-sm">
       {{ error }}
     </div>
     <div v-else ref="plotEl" style="height: 520px;" class="w-full"></div>
+
+    <!-- Vol smile + data quality note (shown only when surface is rendered) -->
+    <div v-if="ticker && !loading && !error" class="mt-4 rounded-lg bg-slate-800/70 border border-slate-600/60 px-4 py-3 text-[13px] text-slate-200 leading-relaxed space-y-2">
+      <p><span class="text-emerald-400 font-semibold">Volatility smile:</span> Implied vol is typically higher for deep ITM and OTM strikes than ATM — a pattern that models using a single volatility (like BSM) cannot capture by design.</p>
+      <p><span class="text-amber-400 font-semibold">Data note:</span> Isolated spikes or irregular patches are real market artifacts — low-liquidity contracts, wide bid-ask spreads, or sparse option chains. These are not rendering bugs.</p>
+    </div>
   </div>
 </template>

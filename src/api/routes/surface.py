@@ -255,7 +255,13 @@ def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONRe
                     )
                 ).all()
             market_points = [
-                MarketPricePoint(K=float(cr.strike), T=float(cr.T), mid_price=float(cr.mid_price))
+                MarketPricePoint(
+                    K=float(cr.strike),
+                    T=float(cr.T),
+                    mid_price=float(cr.mid_price),
+                    volume=int(cr.volume or 0),
+                    open_interest=int(cr.open_interest or 0),
+                )
                 for cr in chain_rows
                 if float(cr.mid_price) > 0
             ]
