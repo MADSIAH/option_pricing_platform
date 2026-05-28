@@ -11,6 +11,8 @@ import VolSurface from './components/VolSurface.vue'
 import PriceSurface from './components/PriceSurface.vue'
 import ChatPanel from './components/ChatPanel.vue'
 import ExplainPanel from './components/ExplainPanel.vue'
+import SurfaceExplainPanel from './components/SurfaceExplainPanel.vue'
+import { useSurfaceMetrics } from './lib/useSurfaceMetrics.js'
 
 const ticker = ref(null)
 const method = ref('black_scholes')
@@ -28,6 +30,10 @@ const priceLoading = ref(false)
 const priceError = ref(null)
 
 const theme = ref('dark')
+
+const volSurfaceData   = ref(null)
+const priceSurfaceData = ref(null)
+const { metrics: surfaceMetrics, ready: surfaceReady } = useSurfaceMetrics(volSurfaceData, priceSurfaceData)
 
 function applyTheme(value) {
   const root = document.documentElement
@@ -114,6 +120,11 @@ watch([inputs, method, optionStyle], () => {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(loadPrices, 500)
 }, { deep: true })
+
+watch(ticker, () => {
+  volSurfaceData.value   = null
+  priceSurfaceData.value = null
+})
 </script>
 
 <template>
@@ -121,6 +132,7 @@ watch([inputs, method, optionStyle], () => {
     <NavBar
       :r="inputs.r"
       :sigma="inputs.sigma"
+      :spot="inputs.S"
       :ticker="ticker"
       :theme="theme"
       :chat-open="chatOpen"
@@ -166,6 +178,12 @@ watch([inputs, method, optionStyle], () => {
             :error="priceError"
           />
           <GreeksGrid :result="result" />
+
+          <!-- Navigation nudge: only when a ticker is selected (hidden in manual mode) -->
+          <div v-if="result && ticker" class="text-[12px] text-slate-200 border border-emerald-700/60 rounded-xl px-4 py-3 bg-emerald-900/20 leading-snug">
+            Explore the <button @click="view = 'surfaces'" class="text-emerald-400 hover:underline font-semibold">Vol Surface</button> to see how implied volatility varies across strikes and maturities — or the <button @click="view = 'surfaces'" class="text-emerald-400 hover:underline font-semibold">Price Surface</button> to compare model prices against the market.
+          </div>
+
           <ExplainPanel :result="result" :inputs="inputs" />
           <SensitivityChart v-if="optionStyle === 'european'" :chart-data="chartData" :current-s="inputs.S" :current-k="inputs.K" :theme="theme" />
         </div>
@@ -173,20 +191,30 @@ watch([inputs, method, optionStyle], () => {
 
       <!-- Surfaces view -->
       <div v-else class="flex flex-col gap-6">
-        <VolSurface :ticker="ticker" :theme="theme" />
+        <VolSurface
+          :ticker="ticker"
+          :theme="theme"
+          @surface-loaded="volSurfaceData = $event"
+        />
         <PriceSurface
           :ticker="ticker"
           :inputs="inputs"
           :option-style="optionStyle"
           :sigma-type="sigmaType"
           :theme="theme"
+          @surface-loaded="priceSurfaceData = $event"
+        />
+        <SurfaceExplainPanel
+          :metrics="surfaceMetrics"
+          :ready="surfaceReady"
+          :ticker="ticker"
         />
       </div>
 
     </main>
 
-    <footer class="mt-12 border-t border-slate-800 py-6 text-center text-xs text-slate-600">
-      Option Pricing Platform · Black-Scholes · Monte Carlo · Binomial Tree · BAW · For educational purposes
+    <footer class="mt-12 border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+      Option Pricing Platform · BSM · CRR (Binomial Tree) · Monte Carlo · BAW · Longstaff-Schwartz · For educational purposes
     </footer>
 
     <!-- Chat panel (rendered outside main flow, fixed positioned) -->

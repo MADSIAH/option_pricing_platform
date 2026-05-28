@@ -62,6 +62,19 @@ export async function explainResult(payload) {
   return res.json() // { explanation: string }
 }
 
+export async function explainSurfaces(payload) {
+  const res = await fetch(`${BASE}/ai/explain_surfaces`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || err.error || `Surface explain failed: ${res.status}`)
+  }
+  return res.json()
+}
+
 export async function sendChat(messages, userLevel) {
   const res = await fetch(`${BASE}/ai/chat`, {
     method: 'POST',
