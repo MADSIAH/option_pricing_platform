@@ -4,7 +4,7 @@
 > Project 2.7 · Università della Svizzera Italiana (USI)
 
 ![Status](https://img.shields.io/badge/status-work%20in%20progress-yellow)
-![Stack](https://img.shields.io/badge/stack-TBD-lightgrey)
+![Stack](https://img.shields.io/badge/stack-Vue3%20%7C%20FastAPI%20%7C%20Python-blue)
 ![License](https://img.shields.io/badge/license-TBD-lightgrey)
 
 An educational, AI-enhanced platform for options pricing, Greeks analysis, volatility surface modeling, and interactive financial visualization — built for learners and practitioners alike.
@@ -89,6 +89,29 @@ All five main sensitivities computed for every pricing result:
 - Surface constructed using closed-form solution.
 - Interactive 3D visualization comparing model and market option prices.
 
+### AI Features
+
+Two AI-powered features powered by Gemini are available in the UI:
+
+**Pricing & Greeks — AI Explanation**
+- Triggered from the Pricing & Greeks tab after a result is computed
+- Explains the option price and Greeks in natural language
+- User selects their level (Beginner / Finance Student / Professional) to adapt depth and terminology
+- Endpoint: `POST /api/v1/ai/explain`
+
+**Surfaces — AI Surface Analysis**
+- Triggered from the Surfaces tab once both the vol surface and price surface have loaded
+- Frontend silently computes a set of metrics as soon as the charts render: volatility smile intensity, put-side skew, IV spike detection (z-score within adaptive maturity × moneyness buckets), model-vs-market price divergence per bucket, deep-ITM bias, and liquidity distribution
+- These metrics are sent to the backend, which builds a structured prompt and calls Gemini
+- Response is a plain-prose narrative: model fit, smile shape, irregular patches, liquidity caveats, and cross-surface observations
+- Endpoint: `POST /api/v1/ai/explain_surfaces`
+
+**Options Assistant (Chat)**
+- Persistent chat panel accessible from the navigation bar
+- Free-form Q&A about options, Greeks, and pricing models
+- Maintains conversation history within the session
+- Endpoint: `POST /api/v1/ai/chat`
+
 ### Web Frontend & Dashboards
 
 - Responsive UI with dedicated pricing and Greeks workflows
@@ -120,10 +143,8 @@ All five main sensitivities computed for every pricing result:
 
 These are stretch goals — planned but not guaranteed for the final release:
 
-- **AI-powered explanations** — an LLM agent that interprets pricing outputs and Greeks in natural language, adapting depth to the user's stated level (`beginner`, `finance student`, `professional trader`)
 - **Trading strategy assistant** — a conversational agent that maps pricing analysis to common option strategies (covered calls, straddles, spreads) based on user-defined objectives and risk tolerance
 - **Advanced interactive visualization** — richer surface plots, payoff diagram builder, scenario analysis tools
-- **Exotic and crypto option extensions** — widen the financial scope beyond vanilla European contracts
 - **Mobile-optimized experience** — full responsiveness beyond basic layout adaptation
 
 ---
@@ -139,7 +160,7 @@ These are stretch goals — planned but not guaranteed for the final release:
 | Frontend framework | Vue 3 + Vite + Tailwind CSS | WIP |
 | Data ingestion | `yfinance`, FRED API | Completed |
 | Scheduling | `APScheduler` | Completed |
-| LLM integration | _TBD_ | Nice to have |
+| LLM integration | Gemini (via Google AI API) | Completed |
 | Database | SQLite | Completed |
 | Deployment | _TBD_ | — |
 
@@ -148,23 +169,28 @@ These are stretch goals — planned but not guaranteed for the final release:
 ## Repository Structure
 
 ```
-
-├── docs/           #  Design specs and system documentation
+├── docs/           # Design specs and system documentation
 │
-├── frontend/     
-│ └── src/
-│ ├── components/   # UI components (inputs, charts, displays)
-│ └── lib/ 
+├── frontend/
+│   └── src/
+│       ├── components/         # UI components (inputs, charts, surfaces, AI panels)
+│       └── lib/                # API client, composables (useSurfaceMetrics)
 │
 ├── src/
-│ ├── api/          # FastAPI app, schemas, and route handlers
-│ ├── data/         # Data layer (DB access + schedulers)
-│ └── pricing/      # Pricing engine (all models + Greeks)
+│   ├── ai/                     # LLM integration (Gemini)
+│   │   ├── prompts/            # System prompt text files
+│   │   ├── client.py           # Gemini API wrapper
+│   │   ├── explain.py          # Pricing result explanation
+│   │   ├── explain_surfaces.py # Surface metrics explanation
+│   │   └── chat.py             # Conversational assistant
+│   ├── api/                    # FastAPI app, schemas, and route handlers
+│   ├── data/                   # Data layer (DB access + schedulers)
+│   └── pricing/                # Pricing engine (all models + Greeks)
 │
 ├── scripts/        # Utility scripts
 ├── notebooks/      # Prototyping notebook
 │
-├── tests/          # Unit tests for pricing models
+├── tests/          # Unit and integration tests
 │
 ├── requirements.txt
 └── README.md
@@ -196,8 +222,10 @@ These are stretch goals — planned but not guaranteed for the final release:
 
 ### Phase 4 — Polish & Extensions
 - [x] Mobile UX refinement
-- [ ] LLM explanation module *(nice to have)*
-- [x] Exotic options or crypto extensions *(nice to have)*
+- [x] Exotic options extensions
+- [x] AI explanation for pricing results and Greeks
+- [x] AI surface analysis (vol smile, model divergence, liquidity)
+- [x] Interactive options assistant (chat)
 - [ ] Trading strategy assistant *(nice to have)*
 
 ---
@@ -208,4 +236,4 @@ The project will be developed on GitHub with regular commits and documentation u
 
 ---
 
-*Work in progress — last updated May 20, 2026.*
+*Work in progress — last updated May 28, 2026.*
