@@ -143,18 +143,11 @@ function moneynessBadge(S, K, isCall) {
         </table>
       </div>
 
-      <!-- Put-call parity note (European only) -->
-      <div v-if="result.style === 'european'" class="mt-3 pt-3 border-t border-slate-800">
-        <div class="hint font-mono">
-          Put-Call Parity: C − P = Se^(−qT) − Ke^(−rT)
-        </div>
-      </div>
-
     </template>
 
     <!-- Empty state -->
-    <div v-else class="flex items-center justify-center h-28 text-slate-600 text-sm">
-      Enter valid parameters to see prices
+    <div v-else class="flex items-center justify-center h-28 text-slate-400 text-sm text-center px-4">
+      Select a ticker to load market data and fill in missing parameters, or enter all parameters manually.
     </div>
 
   </div>
