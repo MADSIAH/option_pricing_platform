@@ -21,11 +21,11 @@ def build_explain_message(data: dict) -> str:
         price_lines.append(
             f"  {method}:\n"
             f"    price  = {output['price']:.4f}\n"
-            f"    delta  = {g['delta']:.4f}\n"
-            f"    gamma  = {g['gamma']:.4f}\n"
-            f"    vega   = {g['vega']:.4f}\n"
-            f"    theta  = {g['theta']:.4f}\n"
-            f"    rho    = {g['rho']:.4f}"
+            f"    delta  = {g['delta']:.4f}  (price change per $1 move in S)\n"
+            f"    gamma  = {g['gamma']:.4f}  (delta change per $1 move in S)\n"
+            f"    vega   = {g['vega']:.4f}  (price change per 1 vol point, i.e. per 1% absolute change in sigma)\n"
+            f"    theta  = {g['theta']:.4f}  (price change per calendar day)\n"
+            f"    rho    = {g['rho']:.4f}  (price change per 1% absolute change in r)"
         )
 
     return (
@@ -40,6 +40,9 @@ def build_explain_message(data: dict) -> str:
         f"  Dividend yield (q):{data['q']:.4f}\n\n"
         f"Pricing results:\n" + "\n".join(price_lines) + "\n\n"
         f"Active method: {data['method']}\n\n"
+        "Greek units: vega is the price change per 1 percentage-point move in sigma "
+        "(e.g. sigma 25% → 26%); rho is the price change per 1 percentage-point move in r. "
+        "theta is the price change per calendar day.\n\n"
         "Please explain these results."
     )
 

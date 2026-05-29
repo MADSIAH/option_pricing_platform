@@ -92,7 +92,6 @@ async function selectTicker(t) {
     emit('update:modelValue', {
       ...props.modelValue,
       S: spot,
-      K: spot,
       r: data.risk_free_rate != null ? +(data.risk_free_rate * 100).toFixed(2) : null,
       sigma,
       q: +(data.dividend_yield).toFixed(2),

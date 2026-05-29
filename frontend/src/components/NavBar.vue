@@ -2,6 +2,7 @@
 defineProps({
   r:        { type: Number,  default: 4.5 },
   sigma:    { type: Number,  default: 20 },
+  spot:     { type: Number,  default: 0 },
   ticker:   { type: String,  default: null },
   theme:    { type: String,  default: 'dark' },
   chatOpen: { type: Boolean, default: false },
@@ -35,6 +36,7 @@ const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'num
           <div v-if="ticker" class="flex items-center gap-1.5 bg-emerald-900/30 border border-emerald-700/50 rounded-full px-3 py-1">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
             <span class="text-xs font-mono font-semibold text-emerald-300">{{ ticker }}</span>
+            <span v-if="spot > 0" class="text-xs font-mono text-emerald-400">${{ spot.toFixed(2) }}</span>
           </div>
           <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-full px-3 py-1">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>

@@ -119,6 +119,76 @@
   color: #059669 !important;
 }
 
+/* Info note boxes (surface annotations) */
+.theme-light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.theme-light .bg-slate-800\/70 {
+  background-color: #f0f9ff !important;
+}
+
+.theme-light .border-slate-600\/60 {
+  border-color: rgba(125, 211, 252, 0.7) !important;
+}
+
+/* Emerald nudge boxes */
+.theme-light .bg-emerald-900\/20 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+.theme-light .border-emerald-700\/60 {
+  border-color: rgba(4, 120, 87, 0.45) !important;
+}
+
+/* ITM badge */
+.theme-light .bg-emerald-900\/40 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+
+.theme-light .border-emerald-800\/40 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* OTM badge */
+.theme-light .bg-rose-900\/40 {
+  background-color: rgba(244, 63, 94, 0.1) !important;
+}
+
+.theme-light .text-rose-300 {
+  color: #be123c !important;
+}
+
+.theme-light .border-rose-800\/40 {
+  border-color: rgba(244, 63, 94, 0.25) !important;
+}
+
+/* Violet buttons: AI chat, level selectors */
+.theme-light .bg-violet-900\/10 {
+  background-color: rgba(124, 58, 237, 0.06) !important;
+}
+
+.theme-light .bg-violet-900\/30 {
+  background-color: rgba(124, 58, 237, 0.1) !important;
+}
+
+.theme-light .bg-violet-900\/40 {
+  background-color: rgba(124, 58, 237, 0.12) !important;
+}
+
+/* Chat user message bubble */
+.theme-light .bg-violet-900\/50 {
+  background-color: rgba(124, 58, 237, 0.12) !important;
+}
+
+.theme-light .border-violet-800\/60 {
+  border-color: rgba(124, 58, 237, 0.3) !important;
+}
+
+.theme-light .text-violet-100 {
+  color: #4c1d95 !important;
+}
+
 @layer components {
   .input-field {
     @apply w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5

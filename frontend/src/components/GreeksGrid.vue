@@ -105,13 +105,13 @@ function valueClass(val) {
     </div>
 
     <!-- Empty state -->
-    <div v-else class="flex items-center justify-center h-20 text-slate-600 text-sm">
-      —
+    <div v-else class="flex items-center justify-center h-20 text-slate-400 text-sm text-center px-4">
+      Price an option using the Parameters panel on the left — Greeks will appear here.
     </div>
 
     <!-- Gamma/Vega note -->
     <div v-if="result" class="hint mt-3 pt-3 border-t border-slate-800 flex gap-4">
-      <span>Gamma and Vega are identical for call and put (BSM symmetry)</span>
+      <span>Gamma and Vega are identical for call and put under Black-Scholes (European options only; this symmetry does not hold for American-style options).</span>
     </div>
 
   </div>

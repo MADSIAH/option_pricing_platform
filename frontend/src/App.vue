@@ -11,8 +11,6 @@ import VolSurface from './components/VolSurface.vue'
 import PriceSurface from './components/PriceSurface.vue'
 import ChatPanel from './components/ChatPanel.vue'
 import ExplainPanel from './components/ExplainPanel.vue'
-import SurfaceExplainPanel from './components/SurfaceExplainPanel.vue'
-import { useSurfaceMetrics } from './lib/useSurfaceMetrics.js'
 
 const ticker = ref(null)
 const method = ref('black_scholes')
@@ -30,10 +28,6 @@ const priceLoading = ref(false)
 const priceError = ref(null)
 
 const theme = ref('dark')
-
-const volSurfaceData   = ref(null)
-const priceSurfaceData = ref(null)
-const { metrics: surfaceMetrics, ready: surfaceReady } = useSurfaceMetrics(volSurfaceData, priceSurfaceData)
 
 function applyTheme(value) {
   const root = document.documentElement
@@ -120,11 +114,6 @@ watch([inputs, method, optionStyle], () => {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(loadPrices, 500)
 }, { deep: true })
-
-watch(ticker, () => {
-  volSurfaceData.value   = null
-  priceSurfaceData.value = null
-})
 </script>
 
 <template>
@@ -194,7 +183,6 @@ watch(ticker, () => {
         <VolSurface
           :ticker="ticker"
           :theme="theme"
-          @surface-loaded="volSurfaceData = $event"
         />
         <PriceSurface
           :ticker="ticker"
@@ -202,12 +190,6 @@ watch(ticker, () => {
           :option-style="optionStyle"
           :sigma-type="sigmaType"
           :theme="theme"
-          @surface-loaded="priceSurfaceData = $event"
-        />
-        <SurfaceExplainPanel
-          :metrics="surfaceMetrics"
-          :ready="surfaceReady"
-          :ticker="ticker"
         />
       </div>
 
