@@ -1,5 +1,6 @@
 <script setup>
 import { ref, nextTick, watch } from 'vue'
+import { parseMarkdown } from '../lib/markdown.js'
 import { sendChat } from '../lib/api.js'
 
 const props = defineProps({
@@ -101,19 +102,22 @@ function clear() {
 
     <!-- Message list -->
     <div ref="listEl" class="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
-      <div v-if="messages.length === 0" class="text-center text-xs text-slate-600 mt-8">
+      <div v-if="messages.length === 0" class="text-center text-xs text-slate-400 mt-8">
         Ask anything about options, Greeks, or pricing models.
       </div>
       <div
         v-for="(msg, i) in messages"
         :key="i"
         :class="[
-          'max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap',
+          'max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed',
           msg.role === 'user'
-            ? 'self-end bg-violet-900/50 border border-violet-800/60 text-violet-100'
-            : 'self-start bg-slate-800 border border-slate-700 text-slate-200'
+            ? 'self-end bg-violet-900/50 border border-violet-800/60 text-violet-100 whitespace-pre-wrap'
+            : 'self-start bg-slate-800 border border-slate-700 text-slate-200 chat-prose'
         ]"
-      >{{ msg.content }}</div>
+      >
+        <template v-if="msg.role === 'user'">{{ msg.content }}</template>
+        <span v-else v-html="parseMarkdown(msg.content)" />
+      </div>
 
       <!-- Typing indicator -->
       <div v-if="loading" class="self-start flex items-center gap-1 px-3 py-2">
@@ -150,7 +154,52 @@ function clear() {
           class="px-3 py-2 rounded-lg bg-violet-700 hover:bg-violet-600 text-white text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
         >Send</button>
       </div>
-      <p class="text-[9px] text-slate-700 text-center">Enter to send · Shift+Enter for new line</p>
+      <p class="text-[9px] text-slate-500 text-center">Enter to send · Shift+Enter for new line</p>
+      <p class="text-[9px] text-rose-400/80 text-center font-bold tracking-wide">Educational tool — not investment advice.</p>
     </div>
   </div>
 </template>
+
+<style scoped>
+.chat-prose :deep(h1),
+.chat-prose :deep(h2),
+.chat-prose :deep(h3) {
+  color: #c4b5fd;
+  font-weight: 700;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+.chat-prose :deep(h1) { font-size: 0.85rem; }
+.chat-prose :deep(h2) { font-size: 0.8rem; }
+.chat-prose :deep(h3) { font-size: 0.75rem; }
+.chat-prose :deep(p) {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  margin-bottom: 0.4rem;
+}
+.chat-prose :deep(ul),
+.chat-prose :deep(ol) {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  padding-left: 1.1rem;
+  margin-bottom: 0.4rem;
+  list-style: disc;
+}
+.chat-prose :deep(ol) { list-style: decimal; }
+.chat-prose :deep(li) { margin-bottom: 0.15rem; line-height: 1.5; }
+.chat-prose :deep(strong) { color: #e2e8f0; font-weight: 600; }
+.chat-prose :deep(em) { color: #a5b4fc; font-style: italic; }
+.chat-prose :deep(code) {
+  background: #0f172a;
+  color: #7dd3fc;
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.2rem;
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+.chat-prose :deep(hr) {
+  border-color: #334155;
+  margin: 0.5rem 0;
+}
+</style>

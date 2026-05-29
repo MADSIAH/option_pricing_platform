@@ -99,13 +99,6 @@ Two AI-powered features powered by Gemini are available in the UI:
 - User selects their level (Beginner / Finance Student / Professional) to adapt depth and terminology
 - Endpoint: `POST /api/v1/ai/explain`
 
-**Surfaces — AI Surface Analysis**
-- Triggered from the Surfaces tab once both the vol surface and price surface have loaded
-- Frontend silently computes a set of metrics as soon as the charts render: volatility smile intensity, put-side skew, IV spike detection (z-score within adaptive maturity × moneyness buckets), model-vs-market price divergence per bucket, deep-ITM bias, and liquidity distribution
-- These metrics are sent to the backend, which builds a structured prompt and calls Gemini
-- Response is a plain-prose narrative: model fit, smile shape, irregular patches, liquidity caveats, and cross-surface observations
-- Endpoint: `POST /api/v1/ai/explain_surfaces`
-
 **Options Assistant (Chat)**
 - Persistent chat panel accessible from the navigation bar
 - Free-form Q&A about options, Greeks, and pricing models
@@ -174,14 +167,13 @@ These are stretch goals — planned but not guaranteed for the final release:
 ├── frontend/
 │   └── src/
 │       ├── components/         # UI components (inputs, charts, surfaces, AI panels)
-│       └── lib/                # API client, composables (useSurfaceMetrics)
+│       └── lib/                # API client, composables
 │
 ├── src/
 │   ├── ai/                     # LLM integration (Gemini)
 │   │   ├── prompts/            # System prompt text files
 │   │   ├── client.py           # Gemini API wrapper
 │   │   ├── explain.py          # Pricing result explanation
-│   │   ├── explain_surfaces.py # Surface metrics explanation
 │   │   └── chat.py             # Conversational assistant
 │   ├── api/                    # FastAPI app, schemas, and route handlers
 │   ├── data/                   # Data layer (DB access + schedulers)

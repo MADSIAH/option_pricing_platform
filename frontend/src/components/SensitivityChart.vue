@@ -258,8 +258,8 @@ onUnmounted(() => { if (chart) chart.destroy() })
     <div v-if="chartData">
       <canvas ref="canvasEl"></canvas>
     </div>
-    <div v-else class="flex items-center justify-center h-40 text-slate-600 text-sm">
-      Enter valid parameters to see chart
+    <div v-else class="flex items-center justify-center h-40 text-slate-400 text-sm text-center px-4">
+      Fill in S, K, T, and σ in the Parameters panel to plot the price profile.
     </div>
   </div>
 </template>

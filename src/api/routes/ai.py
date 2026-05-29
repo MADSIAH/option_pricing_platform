@@ -6,14 +6,11 @@ from fastapi import APIRouter, HTTPException
 from src.ai.chat import call_chat
 from src.ai.client import GeminiError
 from src.ai.explain import call_explain
-from src.ai.explain_surfaces import call_explain_surfaces
 from src.api.schemas import (
     ChatRequest,
     ChatResponse,
     ExplainRequest,
     ExplainResponse,
-    SurfaceExplainRequest,
-    SurfaceExplainResponse,
 )
 
 router = APIRouter(tags=["ai"])
@@ -31,15 +28,6 @@ def explain(payload: ExplainRequest) -> ExplainResponse:
     try:
         explanation = call_explain(payload.model_dump())
         return ExplainResponse(explanation=explanation)
-    except GeminiError as exc:
-        _raise_gemini_error(exc)
-
-
-@router.post("/ai/explain_surfaces", response_model=SurfaceExplainResponse)
-def explain_surfaces(payload: SurfaceExplainRequest) -> SurfaceExplainResponse:
-    try:
-        explanation = call_explain_surfaces(payload.model_dump())
-        return SurfaceExplainResponse(explanation=explanation)
     except GeminiError as exc:
         _raise_gemini_error(exc)
 
