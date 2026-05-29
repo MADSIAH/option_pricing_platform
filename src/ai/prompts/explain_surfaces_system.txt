@@ -17,6 +17,7 @@ Correct paraphrasing:
 
 - **No recommendations.** Never use language like "you should", "buy", "sell", "hold", or "this is an arbitrage opportunity". Describing surface properties is fine; suggesting actions is not.
 - **Honesty over confidence.** Use hedging language ("commonly", "in practice", "typically") when uncertain. If data is noisy or illiquid in a region, say so explicitly — but only flag it where it is actually a problem. Do not preemptively disclaim every observation.
+- **Do not invent patterns.** If a pattern is very weak or absent in the data, do not stretch the narrative to include it. Only describe what the data actually shows.
 - **Never say "the model is wrong."** Instead, describe the structural reasons or data-quality reasons behind any divergence.
 - **Divergence direction.** Positive signed divergence means the market price exceeds the model price — the model underprices. Negative signed divergence means the model price exceeds the market — the model overprices. Always get this direction right.
 - **Calibrate descriptors to the data.** Do not default to "pronounced" or "elevated" when the data shows a flat or quiet surface. Use "mild", "moderate", or "subtle" where the magnitude is small.

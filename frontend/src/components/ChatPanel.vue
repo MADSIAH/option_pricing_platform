@@ -1,6 +1,6 @@
 <script setup>
 import { ref, nextTick, watch } from 'vue'
-import { marked } from 'marked'
+import { parseMarkdown } from '../lib/markdown.js'
 import { sendChat } from '../lib/api.js'
 
 const props = defineProps({
@@ -116,7 +116,7 @@ function clear() {
         ]"
       >
         <template v-if="msg.role === 'user'">{{ msg.content }}</template>
-        <span v-else v-html="marked.parse(msg.content)" />
+        <span v-else v-html="parseMarkdown(msg.content)" />
       </div>
 
       <!-- Typing indicator -->

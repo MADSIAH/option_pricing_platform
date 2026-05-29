@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { marked } from 'marked'
+import { parseMarkdown } from '../lib/markdown.js'
 import { explainSurfaces } from '../lib/api.js'
 
 const props = defineProps({
@@ -23,7 +23,7 @@ const loading     = ref(false)
 const error       = ref(null)
 
 const explanationHtml = computed(() =>
-  explanation.value ? marked.parse(explanation.value) : ''
+  explanation.value ? parseMarkdown(explanation.value) : ''
 )
 
 async function runExplain() {

@@ -1,7 +1,7 @@
 """Builds the explain-surfaces prompt and calls Gemini."""
 from __future__ import annotations
 
-from src.ai.client import generate
+from src.ai.client import generate, MODEL_SURFACES
 from src.ai.prompts import EXPLAIN_SURFACES_SYSTEM_PROMPT
 
 _LEVEL_LABELS = {
@@ -87,4 +87,5 @@ def call_explain_surfaces(data: dict) -> str:
     return generate(
         EXPLAIN_SURFACES_SYSTEM_PROMPT,
         [{"role": "user", "parts": [{"text": message}]}],
+        model=MODEL_SURFACES,
     )

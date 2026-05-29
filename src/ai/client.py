@@ -7,13 +7,14 @@ from google import genai
 from google.genai import types
 
 MODEL = "gemini-3.1-flash-lite"
+MODEL_SURFACES = "gemini-2.5-flash"
 
 
 class GeminiError(Exception):
     """Raised when the Gemini API call fails or is not configured."""
 
 
-def generate(system_instruction: str, contents: list[dict]) -> str:
+def generate(system_instruction: str, contents: list[dict], model: str = MODEL) -> str:
     """Call Gemini and return the response text.
 
     Raises GeminiError if the API key is missing or the call fails.
@@ -24,7 +25,7 @@ def generate(system_instruction: str, contents: list[dict]) -> str:
     try:
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model=MODEL,
+            model=model,
             config=types.GenerateContentConfig(system_instruction=system_instruction),
             contents=contents,
         )
