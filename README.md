@@ -28,6 +28,7 @@ An educational, AI-enhanced platform for options pricing, Greeks analysis, volat
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Project Criteria](#project-criteria)
+- [Documentation](#documentation)
 - [AI Contribution](#ai-contribution)
 
 ---
@@ -579,6 +580,16 @@ This project was developed as an agentic project. AI tools contributed throughou
 - **GitHub Copilot** — code completion during frontend development
 
 See [`AGENTS.md`](AGENTS.md) for the full description of how AI agents contributed to the development workflow. All AI-assisted pull requests are documented in the commit history.
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [`docs/user-guide.md`](docs/user-guide.md) | Step-by-step guide to the web app — inputs, outputs, AI features, surfaces |
+| [`docs/api.md`](docs/api.md) | Full REST API reference — all endpoints, request/response schemas, examples |
+| [`docs/specs/`](docs/specs/) | Internal design specs used during development |
 
 ---
 
