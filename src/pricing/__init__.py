@@ -5,6 +5,4 @@ from .binomial_tree import BinomialTree
 from .greeks import Greeks, AnalyticalGreeks, NumericalGreeks
 from .vol_surface import implied_vol, build_vol_surface, clean_option_chain
 from .path_simulator import GBMPathSimulator
-from .exotics import AsianOption, BarrierOption, LookbackOption, DigitalOption
 from .longstaff_schwartz import LongstaffSchwartz
-from .heston import HestonParams, HestonMC

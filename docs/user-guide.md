@@ -147,6 +147,5 @@ Compares model prices against market mid-prices across a grid of strikes and mat
 ## Limitations
 
 - **Educational only** — prices are indicative and should not be used for trading decisions.
-- **No exotic options** in the web UI — Asian, Barrier, Lookback, and Digital options are available via the Python API only.
 - **Market data delays** — Yahoo Finance data may be delayed by 15 minutes during market hours.
 - **Backend required** — AI explanation, chat, market data fetch, and vol surface all depend on the backend API being online.
