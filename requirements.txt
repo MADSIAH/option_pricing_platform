@@ -1,17 +1,30 @@
-numpy
-scipy
-pandas
+# Pinned to a known-working set (Python 3.11–3.12).
+# Numerical & data
+numpy==1.26.4
+scipy==1.17.1
+pandas==2.2.3
 
-yfinance
-requests
-python-dotenv
+# Market data
+yfinance==0.2.54
+requests==2.32.3
 
-sqlalchemy
-pytz
-apscheduler
+# Configuration
+python-dotenv==1.2.2
 
-fastapi
-uvicorn[standard]
-pydantic
+# Database
+SQLAlchemy==2.0.36
 
-google-genai>=1.0
+# Scheduling
+pytz==2024.2
+APScheduler==3.11.2
+
+# API
+fastapi==0.136.1
+uvicorn[standard]==0.47.0
+pydantic==2.9.2
+
+# AI
+google-genai==2.6.0
+
+# Testing
+pytest==9.0.3

@@ -16,27 +16,21 @@ An educational, AI-enhanced platform for options pricing, Greeks analysis, volat
 
 ---
 
-## Table of Contents
+## Why this platform?
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Repository Structure](#repository-structure)
-- [Installation](#installation)
-- [Running Locally](#running-locally)
-- [API Documentation](#api-documentation)
-- [Usage Examples](#usage-examples)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Project Criteria](#project-criteria)
-- [Documentation](#documentation)
-- [AI Contribution](#ai-contribution)
+Standard finance courses cover derivatives pricing thoroughly — but less attention is given to how models behave when applied to real market data. OptionDesk bridges that gap: state-of-the-art pricing on real companies, paired with live market data visualisations that make the divergence between model and market visible and instructive. An AI assistant helps interpret every result, adapting to the user's level — a platform built for anyone who wants to understand options.
 
 ---
 
 ## Overview
 
-Options pricing sits at the intersection of mathematics, statistics, and market microstructure. This platform makes it tangible: it prices European and American options using both closed-form and numerical methods, computes the full Greek profile, constructs the implied volatility surface from live market data, and explains every result in natural language adapted to the user's background.
+OptionDesk is a full-stack options pricing platform built around five models — Black-Scholes, Monte Carlo (GBM, antithetic variates), Cox-Ross-Rubinstein binomial tree, Longstaff-Schwartz (Monte Carlo + OLS regression for American early exercise), and Barone-Adesi-Whaley — each returning a complete Greek profile (Δ, Γ, ν, Θ, ρ) via analytical formulas or numerical central differences.
+
+The data layer (SQLite + APScheduler) fetches live spot prices, dividend yields, and full option chains with implied volatilities from Yahoo Finance, plus the risk-free rate from FRED (TB3MS). Intraday data refreshes hourly and the risk-free rate daily, with snapshots persisted in a local database.
+
+The FastAPI backend exposes a REST API consumed by a Vue 3 frontend deployed on Vercel. The UI renders interactive pricing tables, Greek sensitivity charts, and 3D volatility and price surfaces that juxtapose model output against live market quotes — making model-market divergence directly visible.
+
+A Gemini-powered AI assistant interprets every pricing result in natural language, adapting its explanation depth to the user's declared level (beginner, finance student, professional), and supports open-ended follow-up via a persistent chat interface.
 
 ---
 
@@ -106,7 +100,7 @@ Two AI-powered features (Gemini 3.1 Lite Flash):
 
 - Equity prices and option chains via `yfinance`
 - Risk-free rates via FRED API (TB3MS — 3-Month Treasury Bill)
-- Scheduled refresh via `APScheduler` (every 60 minutes)
+- Scheduled refresh via `APScheduler` (intraday data hourly; risk-free rate and daily closes once a day)
 - Data cached in SQLite for fast API responses
 
 ---
@@ -220,76 +214,6 @@ option_pricing_platform/
 
 ---
 
-## Installation
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-- A Google Gemini API key (free tier) for AI features
-
-### Backend
-
-```bash
-git clone https://github.com/MADSIAH/option_pricing_platform.git
-cd option_pricing_platform
-
-# Create and activate a virtual environment
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-```
-
----
-
-## Running Locally
-
-### 1. Set environment variables
-
-Create a `.env` file in the project root:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-### 2. Start the backend API
-
-```bash
-# From the project root
-uvicorn src.api.main:app --reload --port 8000
-```
-
-The API will be available at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
-
-### 3. Start the frontend
-
-```bash
-cd frontend
-npm run dev
-```
-
-The app will be available at `http://localhost:5173`.
-
-> **Note:** For local development, the frontend reads `VITE_API_URL`. Set it to `http://localhost:8000/api/v1` in `frontend/.env.local` if needed.
-
-### 4. (Optional) Run the data scheduler
-
-```bash
-python -m src.data.scheduler
-```
-
-This initialises the SQLite database and starts the 60-minute refresh cycle for market data.
-
----
 
 ## API Documentation
 
@@ -310,6 +234,10 @@ Interactive docs (Swagger UI): [http://209.38.239.83:8000/docs](http://209.38.23
 ---
 
 ## Usage Examples
+
+### Web interface
+
+Open [option-pricing-platform.vercel.app](https://option-pricing-platform.vercel.app) — no setup required. A full walkthrough of every feature is in the [User Guide](docs/user-guide.md).
 
 ### Check the API is running
 
@@ -342,7 +270,7 @@ curl http://209.38.239.83:8000/api/v1/vol_surface/AAPL
 python -m pytest tests/ -v
 
 # Run only the pricing engine tests
-python -m pytest tests/test_black_scholes.py tests/test_monte_carlo.py tests/test_binomial_tree.py tests/test_greeks.py tests/test_vol_surface.py tests/test_longstaff_schwartz.py tests/test_baw.py -v
+python -m pytest tests/test_monte_carlo.py tests/test_binomial_tree.py tests/test_greeks.py tests/test_vol_surface.py tests/test_longstaff_schwartz.py tests/test_baw.py -v
 
 # Run with coverage
 python -m pytest tests/ --cov=src --cov-report=term-missing
@@ -392,30 +320,34 @@ VITE_API_URL=http://your-api-host/api/v1
 
 ### Level 3 — Full self-hosting (own VPS + own API key)
 
+**Prerequisites:** Python 3.11 or 3.12, Node.js 18+, a Google Gemini API key (free tier).
+
 The backend runs as two separate persistent processes on an Ubuntu VPS, each in its own `screen` session.
 
 ```bash
-# Clone and install
+# Clone, create venv, and install
 git clone https://github.com/MADSIAH/option_pricing_platform.git
 cd option_pricing_platform
-python -m venv .venv
-source .venv/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 
 # Create .env with your Gemini API key
 echo "GEMINI_API_KEY=your_key_here" > .env
 
-# Scheduler screen — populates and refreshes the SQLite database every 60 minutes
+# Scheduler screen — populates and refreshes the SQLite database
 screen -S scheduler
-source .venv/bin/activate
-python -m src.data.scheduler
-# Ctrl+A D to detach
+cd ~/option_pricing_platform
+source venv/bin/activate
+python3 -m src.data.scheduler
+# Ctrl+A D to detach (Ctrl+C to stop)
 
 # API screen — serves the FastAPI application
 screen -S api
-source .venv/bin/activate
+cd ~/option_pricing_platform
+source venv/bin/activate
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000
-# Ctrl+A D to detach
+# Ctrl+A D to detach (Ctrl+C to stop)
 ```
 
 To reattach to a running session: `screen -r scheduler` or `screen -r api`.
