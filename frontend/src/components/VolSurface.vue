@@ -48,7 +48,7 @@ function buildLayout(theme, title, hasSpot) {
         zerolinecolor: c.grid,
       },
       yaxis: {
-        title: { text: hasSpot ? 'Moneyness (K/S)' : 'Strike K ($)', font: { color: c.font, size: 11 } },
+        title: { text: hasSpot ? 'Moneyness (S/K)' : 'Strike K ($)', font: { color: c.font, size: 11 } },
         tickfont: { color: c.font, size: 9 },
         gridcolor: c.grid,
         zerolinecolor: c.grid,
@@ -83,7 +83,7 @@ async function loadAndPlot() {
     const c     = colors(props.theme)
     const S     = market?.spot_price ?? null
 
-    const toMoneyness = K => S ? K / S : K
+    const toMoneyness = K => S ? S / K : K
 
     let traces
     if (data.grid) {

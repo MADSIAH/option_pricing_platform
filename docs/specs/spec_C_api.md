@@ -111,7 +111,6 @@ Greeks:
 - `style="european"` → BS, MC, BT (european)
 - `style="american"` → BAW, BT (american) , LongstaffSchwartz
 - `method="all"` → all valid models for the chosen style
-- Heston is excluded from standard pricing endpoints
 
 ---
 
@@ -311,4 +310,3 @@ uvicorn[standard]
 - Authentication
 - WebSocket / streaming
 - Frontend
-- Heston model in standard pricing endpoints (requires different params schema)

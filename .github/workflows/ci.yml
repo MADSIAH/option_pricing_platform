@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Python 3.12)
+    runs-on: ubuntu-latest
+    env:
+      # Dummy key so the app boots in CI; AI endpoints aren't exercised here.
+      GEMINI_API_KEY: dummy-key-for-ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run test suite
+        run: python -m pytest tests/ -v
+
+      - name: Smoke-test API boot
+        run: |
+          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8000 &
+          for i in $(seq 1 15); do
+            if curl -fs http://127.0.0.1:8000/api/v1/health; then
+              echo "API healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API failed to become healthy"
+          exit 1
+
+  frontend:
+    name: Frontend build (Node 18)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build
+        run: npm run build
+        working-directory: frontend

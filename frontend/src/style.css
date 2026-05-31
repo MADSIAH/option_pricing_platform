@@ -245,3 +245,54 @@
 .theme-light .section-label {
   color: #64748b;
 }
+
+/* ExplainPanel output box background */
+.theme-light .bg-slate-900\/60 {
+  background-color: #f8fafc !important;
+}
+
+/* Rose text — errors and disclaimers */
+.theme-light .text-rose-400 {
+  color: #be123c !important;
+}
+.theme-light .text-rose-400\/80 {
+  color: rgba(190, 18, 60, 0.85) !important;
+}
+
+/* AI Chat + Explain prose: light-theme contrast overrides
+   (scoped component styles use hardcoded dark hex; !important wins over [data-v-xxx] specificity) */
+.theme-light .chat-prose h1,
+.theme-light .chat-prose h2,
+.theme-light .chat-prose h3,
+.theme-light .explain-prose h1,
+.theme-light .explain-prose h2,
+.theme-light .explain-prose h3 {
+  color: #4c1d95 !important;
+}
+.theme-light .chat-prose p,
+.theme-light .chat-prose ul,
+.theme-light .chat-prose ol,
+.theme-light .chat-prose li,
+.theme-light .explain-prose p,
+.theme-light .explain-prose ul,
+.theme-light .explain-prose ol,
+.theme-light .explain-prose li {
+  color: #1e293b !important;
+}
+.theme-light .chat-prose strong,
+.theme-light .explain-prose strong {
+  color: #0f172a !important;
+}
+.theme-light .chat-prose em,
+.theme-light .explain-prose em {
+  color: #3730a3 !important;
+}
+.theme-light .chat-prose code,
+.theme-light .explain-prose code {
+  background: #ede9fe !important;
+  color: #4338ca !important;
+}
+.theme-light .chat-prose hr,
+.theme-light .explain-prose hr {
+  border-color: #e2e8f0 !important;
+}
