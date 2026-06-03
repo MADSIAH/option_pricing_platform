@@ -195,7 +195,8 @@ def price_surface(payload: PriceSurfaceRequest) -> PriceSurfaceResponse | JSONRe
             return _error(404, "Ticker not found")
 
         S_ref = float(payload.S) if payload.S is not None else float(live["spot_price"])
-        q = float(payload.q) if payload.q is not None else float(live["dividend_yield"])
+        # dividend_yield is stored in percent (yfinance convention); convert to fraction
+        q = float(payload.q) if payload.q is not None else float(live["dividend_yield"]) / 100.0
 
         rate_stale = False
         if payload.r is None:
@@ -307,7 +308,8 @@ def greeks_profile(payload: GreeksProfileRequest) -> GreeksProfileResponse | JSO
                 return _error(404, "Ticker not found")
 
             S = float(payload.S) if payload.S is not None else float(live["spot_price"])
-            q = float(payload.q) if payload.q is not None else float(live["dividend_yield"])
+            # dividend_yield is stored in percent (yfinance convention); convert to fraction
+            q = float(payload.q) if payload.q is not None else float(live["dividend_yield"]) / 100.0
 
             rate_stale = False
             if payload.r is None:

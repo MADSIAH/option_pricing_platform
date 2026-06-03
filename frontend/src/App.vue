@@ -66,9 +66,16 @@ const chartData = computed(() => {
 })
 
 let debounceTimer = null
+let priceRunId = 0
+let priceAbort = null
 
 async function loadPrices() {
   if (!canPrice.value) { result.value = null; return }
+  // Tag this run and cancel any in-flight one so a slow earlier request
+  // (e.g. a stale strike typed mid-edit) can't clobber a newer result.
+  const myRun = ++priceRunId
+  priceAbort?.abort()
+  const ctrl = (priceAbort = new AbortController())
   priceLoading.value = true
   priceError.value = null
   try {
@@ -84,9 +91,11 @@ async function loadPrices() {
       mc_paths: optionStyle.value === 'european' ? 50000 : 5000,
     }
     const [callRes, putRes] = await Promise.all([
-      priceOption({ ...base, option_type: 'call' }),
-      priceOption({ ...base, option_type: 'put' }),
+      priceOption({ ...base, option_type: 'call' }, ctrl.signal),
+      priceOption({ ...base, option_type: 'put' }, ctrl.signal),
     ])
+
+    if (myRun !== priceRunId) return  // superseded by a newer run — drop this stale result
 
     const mKey = method.value
     const cm = callRes.prices[mKey]
@@ -103,10 +112,11 @@ async function loadPrices() {
       style: optionStyle.value,
     }
   } catch (e) {
+    if (e.name === 'AbortError' || myRun !== priceRunId) return  // cancelled/superseded — ignore
     priceError.value = e.message
     result.value = null
   } finally {
-    priceLoading.value = false
+    if (myRun === priceRunId) priceLoading.value = false
   }
 }
 

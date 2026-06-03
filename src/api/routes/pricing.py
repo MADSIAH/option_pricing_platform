@@ -142,7 +142,8 @@ def price_option(payload: PriceRequest) -> PriceResponse | JSONResponse:
             if live is not None:
                 data_source = "database"
                 S = float(payload.S) if payload.S is not None else float(live["spot_price"])
-                q = float(payload.q) if payload.q is not None else float(live["dividend_yield"])
+                # dividend_yield is stored in percent (yfinance convention); convert to fraction
+                q = float(payload.q) if payload.q is not None else float(live["dividend_yield"]) / 100.0
 
                 rate_stale = False
                 if payload.r is None:
