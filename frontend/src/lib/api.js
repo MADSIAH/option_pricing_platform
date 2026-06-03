@@ -14,11 +14,12 @@ export async function fetchRFR() {
   return data.risk_free_rate != null ? +(data.risk_free_rate * 100).toFixed(2) : null
 }
 
-export async function priceOption(payload) {
+export async function priceOption(payload, signal) {
   const res = await fetch(`${BASE}/price`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))

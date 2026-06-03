@@ -94,7 +94,7 @@ async function selectTicker(t) {
       S: spot,
       r: data.risk_free_rate != null ? +(data.risk_free_rate * 100).toFixed(2) : null,
       sigma,
-      q: +(data.dividend_yield * 100).toFixed(2),  // API serves a fraction; this field is in %
+      q: +(data.dividend_yield).toFixed(2),
     })
   } catch (e) {
     error.value = `Could not load data for ${t}`
