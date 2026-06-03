@@ -218,6 +218,9 @@ def refresh_live_price(ticker: str) -> None:
     dividend_yield = info.get("dividendYield", 0.0)
     if dividend_yield is None:
         dividend_yield = 0.0
+    # yfinance reports dividendYield in percent (e.g. 1.03 for 1.03%); store as a
+    # decimal fraction so downstream consumers can use it directly as the option q.
+    dividend_yield = float(dividend_yield) / 100.0
 
     now_utc = datetime.now(timezone.utc).isoformat()
     upsert_stmt = sqlite_insert(LivePrice).values(
